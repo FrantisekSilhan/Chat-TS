@@ -1,0 +1,29 @@
+<% page = "Sign in" %>
+
+<div class="auth">
+  <div class="auth__main">
+    <h1 class="text--s2 text--bold">Sign in</h1>
+    
+    <form action="/login" method="POST" class="form">
+      <div class="form__items">
+        <input class="form__input" type="text" id="login" name="login" placeholder="Login" maxlength="<%= loginMax %>" value="<%= formData.login %>" required>
+        
+        <input class="form__input" type="password" id="password" name="password" placeholder="Password" maxlength="<%= passwordMax %>" required>
+      </div>
+      
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      
+      <button class="btn btn--primary" type="submit">Sign in</button>
+      
+      <% if(error && error.message) { %>
+        <p class="text text--center text--danger"><%= error.message %></p>
+        <% } %>
+      </form>
+    </div>
+    
+    <aside class="auth__aside">
+      <h2 class="text--s2 text--bold">Welcome Back!</h2>
+      <p>Don't have an account? Click below to sign up.</p>
+      <a class="btn" href="/register">Sign up</a>
+      </aside>
+</div>
