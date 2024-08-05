@@ -30,7 +30,6 @@ export const initialize = () => {
         displayname TEXT NOT NULL,
         email TEXT NOT NULL,
         isEmailVerified BOOLEAN DEFAULT FALSE,
-        isOnline BOOLEAN DEFAULT FALSE,
         color TEXT NOT NULL
       )
     `).run();
@@ -86,7 +85,6 @@ export interface IUser {
   displayname?: string;
   email?: string;
   isEmailVerified?: boolean;
-  isOnline?: boolean;
   color?: string;
 };
 
@@ -150,6 +148,15 @@ export function executeUpdate(sql: string, params: any[]): number {
 export function executeDelete(sql: string, params: any[]): number {
   return db.prepare(sql).run(...params).changes;
 };
+
+export function executeInsertSafe(sql: string, params: any[]): ExecuteResult {
+  try {
+    return db.prepare(sql).run(...params).lastInsertRowid as ExecuteResult;
+  } catch (err) {
+    logger.error("executeInsertSafe", err);
+    return (safeInteger ? 0n : 0) as ExecuteResult;
+  }
+}
 
 export function executeUpdateSafe(sql: string, params: any[]): number {
   try {

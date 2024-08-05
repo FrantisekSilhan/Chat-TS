@@ -66,5 +66,8 @@
       <p>© 2024 slhn.cz</p>
     </footer>
   </div>
+  <% if (user) { %>
+    <script nonce="<%= cspNonce %>" src="/websocket.js"></script>
+  <% } %>
 </body>
 </html>

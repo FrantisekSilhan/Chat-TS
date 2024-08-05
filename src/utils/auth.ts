@@ -68,7 +68,7 @@ export const register = (username: string, email: string, password: string): (IU
     db.transaction(() => {
       const userId = executeInsert("INSERT INTO users (username, displayname, email, color) VALUES (?, ?, ?, ?)", [username, username, email, color]);
       returnValue.id = userId;
-      executeInsert("INSERT INTO passwords (id, password, salt, timestamp) VALUES (?, ?, ?, ?)", [userId, hashedPassword, salt, timestamp()]);
+      executeInsert("INSERT INTO passwords (id, password, salt, timestamp) VALUES (?, ?, ?, ?)", [userId, hashedPassword, salt, timestamp(userId)]);
     })();
   } catch (err) {
     logger.error("register", err);
