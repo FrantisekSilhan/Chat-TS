@@ -1,0 +1,38 @@
+.chat {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100vh;
+}
+
+.message {
+  text-shadow: 0 0 0px hsl(var(--color-black));
+  word-wrap: break-word;
+}
+
+.message__displayname {
+  font-weight: 500;
+  color: transparent;
+  display: inline-block;
+  margin: 0;
+  text-shadow: none;
+}
+
+.message__timestamp {
+  display: inline-block;
+  width: 10.5em;
+  text-align: right;
+  margin-right: .5em;
+  letter-spacing: -1px;
+  font-family: "Consolas", "Courier New", Courier, monospace;
+}
+
+.message:nth-child(odd) {
+  background-color: #080C0C;
+}
+.message:nth-child(even) {
+  background-color: #0D1111;
+}

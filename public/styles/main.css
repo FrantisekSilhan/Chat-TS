@@ -1,0 +1,45 @@
+:root {
+  --text: 218 27% 94%;
+  --text-hover: 219 28% 88%;
+  --background: 220 16% 22%;
+  --background-hover: 222 16% 28%;
+  --primary: 179 25% 65%;
+  --accent: 213 32% 52%;
+  --error: 354 42% 56%;
+  --warning: 14 51% 63%;
+  --alert: 40 71% 73%;
+  --success: 92 28% 65%;
+  --info: 311 20% 63%;
+  --shadow: calc(var(--border-radius) * -1) var(--border-radius) var(--border-radius) hsl(0 0% 0% / .25);
+
+  --font: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --monospace: "Consolas", "Courier New", Courier, monospace;
+  --border-radius: .25em;
+  --border-radius2: .5em;
+
+  --navbar-height: 3.125em;
+
+  --font-base: 18px;
+
+  --color-black: 0 0% 0%;
+  --color-white: 0 0% 100%;
+  
+  --font-m: var(--font-base);
+  --font-s1: calc(var(--font-base) * 1.25);
+  --font-s2: calc(var(--font-base) * 1.5);
+  --font-s3: calc(var(--font-base) * 1.75);
+  --font-s4: calc(var(--font-base) * 2);
+  --font-s5: calc(var(--font-base) * 2.5);
+}
+
+html {
+  background-color: hsl(var(--background));
+  color: hsl(var(--text));
+  font-family: var(--font);
+  font-size: var(--font-base);
+}
+
+body {
+  max-width: 2560px;
+  margin: 0 auto;
+}

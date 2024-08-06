@@ -31,6 +31,7 @@ export interface IError {
   status?: number;
   message: string;
   part?: string;
+  additional?: any;
 };
 
 export const isIError = (error: any): error is IError => {

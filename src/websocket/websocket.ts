@@ -21,6 +21,8 @@ export interface CustomWebSocket extends WebSocket {
   /*pendingRequests?: PendingRequest;*/
 }
 
+const MAX_CONNECTIONS_PER_USER = 3;
+
 export enum PayloadType {
   SERVER_CLOSE = 0,
   CLIENT_MESSAGE = 1,
@@ -30,6 +32,9 @@ export enum PayloadType {
   CLIENT_USER_DATA = 5,
   SERVER_USER_DATA = 6,
   WELCOME = 7,
+  SERVER_SUCCESSFUL_MESSAGE = 8,
+  SERVER_ERROR_CLOSE = 9,
+  SERVER_ERROR = 10,
 }
 
 type PayloadTypeParams = {
@@ -41,6 +46,9 @@ type PayloadTypeParams = {
   [PayloadType.CLIENT_USER_DATA]: [ExecuteResult];
   [PayloadType.SERVER_USER_DATA]: [ExecuteResult, string, string, string];
   [PayloadType.WELCOME]: [ExecuteResult, string, string];
+  [PayloadType.SERVER_SUCCESSFUL_MESSAGE]: [string];
+  [PayloadType.SERVER_ERROR_CLOSE]: [string];
+  [PayloadType.SERVER_ERROR]: [string];
 }
 
 interface ClientMessage {
@@ -88,10 +96,14 @@ interface Welcome {
   color: string;
 }
 
-const clients = new Map<ExecuteResult, CustomWebSocket>();
+const clients = new Map<ExecuteResult, CustomWebSocket[]>();
 
-const closeConnection = (ws: CustomWebSocket) => {
-  ws.send(JSON.stringify([PayloadType.SERVER_CLOSE]));
+const closeConnection = (ws: CustomWebSocket, message?: string) => {
+  if (message) {
+    ws.send(JSON.stringify([PayloadType.SERVER_ERROR_CLOSE, message]));
+  } else {
+    ws.send(JSON.stringify([PayloadType.SERVER_CLOSE]));
+  }
   ws.close();
 }
 
@@ -119,16 +131,50 @@ export const initializeWebSocket = (server: Server, sessionMiddleware: any) => {
 
     ws.userId = userId;
 
-    clients.set(userId, ws);
+    const existing = clients.get(userId);
 
-    sendMessage(PayloadType.WELCOME, [userId, user.displayname!, user.color!], userId);
+    if (existing) {
+      if (existing.length >= MAX_CONNECTIONS_PER_USER) {
+        closeConnection(existing.shift()!, "Too Many Connections From User, Closing Oldest Connection");
+      }
+      existing.push(ws);
+      clients.set(userId, existing);
+    } else {
+      clients.set(userId, [ws]);
+    }
+
+    sendMessageWS(PayloadType.WELCOME, [userId, user.displayname!, user.color!], ws);
 
     ws.on("message", (message: string) => {
-      messageHandler(ws.userId, message);
+      const result = messageHandler(ws, message);
+      if (isIError(result)) {
+        logger.error(JSON.stringify(result));
+        closeConnection(ws, result.message);
+      }
+    });
+
+    ws.on("error", (err) => {
+      logger.error(JSON.stringify(err));
+
+      closeConnection(ws);
     });
 
     ws.on("close", () => {
-      clients.delete(userId);
+      const userConnections = clients.get(userId);
+      if (!userConnections) return;
+
+      const index = userConnections.indexOf(ws);
+
+      if (index < 0) return;
+
+      userConnections.splice(index, 1);
+
+      if (userConnections.length === 0) {
+        clients.delete(userId);
+        return;
+      };
+      
+      clients.set(userId, userConnections);
     });
   });
 
@@ -136,7 +182,7 @@ export const initializeWebSocket = (server: Server, sessionMiddleware: any) => {
 };
 
 const isPayloadOfType = <T extends PayloadType>(type: T, payload: any[]): payload is PayloadTypeParams[T] => {
-  const isBigInt = (value: any): value is bigint => typeof value === "bigint";
+  const isBigInt = (value: any): value is bigint => (typeof value === "bigint" || typeof value === "number");
   switch (type) {
     case PayloadType.CLIENT_MESSAGE:
       return payload.length === 1 && typeof payload[0] === "string";
@@ -172,29 +218,35 @@ const isPayloadOfType = <T extends PayloadType>(type: T, payload: any[]): payloa
   }
 };
 
-const messageHandler = (userId: bigint, message: string): (boolean | IError) => {
+const messageHandler = (ws: CustomWebSocket, message: string): (boolean | IError) => {
   const data = JSON.parse(message) as [PayloadType, ...any[]];
   const [type, ...payload] = data;
 
   if (!isPayloadOfType(type, payload)) {
-    logger.error("Invalid Payload", message);
+    logger.error(JSON.stringify(["Invalid Payload", message]));
     return { message: "Invalid Payload" };
   }
   
   switch (type) {
     case PayloadType.CLIENT_MESSAGE: {
-      const result = handleRequestClientMessage(userId, payload as PayloadTypeParams[PayloadType.CLIENT_MESSAGE]);
+      const result = handleRequestClientMessage(ws, payload as PayloadTypeParams[PayloadType.CLIENT_MESSAGE]);
       if (isIError(result)) {
-        return result;
+        return {...result, additional: type};
       }
       break;
     }
     case PayloadType.CLIENT_PRIVATE_MESSAGE: {
-      const [ receiverId, message ] = payload as PayloadTypeParams[PayloadType.CLIENT_PRIVATE_MESSAGE];
+      const result = handleRequestClientPrivateMessage(ws, payload as PayloadTypeParams[PayloadType.CLIENT_PRIVATE_MESSAGE]);
+      if (isIError(result)) {
+        return {...result, additional: type};
+      }
       break;
     }
     case PayloadType.CLIENT_USER_DATA: {
-      const typedPayload = payload as PayloadTypeParams[PayloadType.CLIENT_USER_DATA];
+      const result = handleRequestClientUserData(ws, payload as PayloadTypeParams[PayloadType.CLIENT_USER_DATA])
+      if (isIError(result)) {
+        return {...result, additional: type};
+      }
       break;
     }
     default: {
@@ -205,32 +257,96 @@ const messageHandler = (userId: bigint, message: string): (boolean | IError) => 
   return true;
 };
 
-const handleRequestClientMessage = (userId: ExecuteResult, payload: PayloadTypeParams[PayloadType.CLIENT_MESSAGE]): (boolean | IError) => {
+const handleRequestClientMessage = (ws: CustomWebSocket, payload: PayloadTypeParams[PayloadType.CLIENT_MESSAGE]): (boolean | IError) => {
   const [ message ] = payload;
+  const userId = ws.userId;
 
   const snowflake = timestamp(userId);
 
-  if (!executeInsertSafe("INSERT INTO messages (sender, content, timestamp) VALUES (?, ?, ?)", [userId, message, snowflake])) {
+  if (!executeInsertSafe("INSERT INTO messages (content, sender, timestamp) VALUES (?, ?, ?)", [message, userId, snowflake])) {
     return { message: "Error Sending Message" };
   }
 
-  if (!sendMessage(PayloadType.SERVER_MESSAGE, [userId, message, snowflake])) {
-    return { message: "Error Sending Message" };
+  sendMessage(PayloadType.SERVER_MESSAGE, [userId, message, snowflake], undefined, userId);
+
+  if (!sendMessageWS(PayloadType.SERVER_SUCCESSFUL_MESSAGE, [snowflake], ws)) {
+    return { message: "Error Replying To Sender" };
   }
 
   return true;
-}
+};
 
-export function sendMessage<T extends PayloadType>(type: T, params: PayloadTypeParams[T], userId?: ExecuteResult): boolean {
-  if (!userId) {
-    for (const [, client] of clients) {
-      client.send(JSON.stringify([type, ...params]));
+const handleRequestClientPrivateMessage = (ws: CustomWebSocket, payload: PayloadTypeParams[PayloadType.CLIENT_PRIVATE_MESSAGE]): (boolean | IError) => {
+  const [ receiverId, message ] = payload;
+  const userId = ws.userId;
+
+  const snowflake = timestamp(userId);
+
+  const receiverExists = querySingle<IUser>("SELECT id FROM users WHERE id = ?", [receiverId]) !== undefined;
+
+  if (!receiverExists) {
+    return { message: "Invalid Receiver" };
+  }
+
+  if (!executeInsertSafe("INSERT INTO privateMessages (content, sender, receiver, timestamp) VALUES (?, ?, ?, ?)", [message, userId, receiverId, snowflake])) {
+    return { message: "Error Sending Message" };
+  }
+
+  sendMessage(PayloadType.SERVER_PRIVATE_MESSAGE, [userId, message, snowflake], receiverId)
+
+  if (!sendMessageWS(PayloadType.SERVER_SUCCESSFUL_MESSAGE, [snowflake], ws)) {
+    return { message: "Error Replying To Sender" };
+  }
+
+  return true;
+};
+
+const handleRequestClientUserData = (ws: CustomWebSocket, payload: PayloadTypeParams[PayloadType.CLIENT_USER_DATA]): (boolean | IError) => {
+  const [ payloadUserId ] = payload;
+  const userId = ws.userId;
+
+  const user = querySingle<IUser>("SELECT displayname, color FROM users WHERE id = ?", [payloadUserId]);
+
+  if (!user) {
+    return { message: "Invalid User" };
+  }
+
+  if (!sendMessageWS(PayloadType.SERVER_USER_DATA, [payloadUserId, user.displayname!, user.color!, timestamp(userId)], ws)) {
+    return { message: "Error Sending User Data" };
+  }
+
+  return true;
+};
+
+export function sendMessage<T extends PayloadType>(type: T, params: PayloadTypeParams[T], userId?: ExecuteResult, broadCastExceptId?: ExecuteResult): boolean {
+  if (broadCastExceptId) {
+    for (const [id, clientConnections] of clients) {
+      if (id === broadCastExceptId) continue;
+      for (const client of clientConnections) {
+        client.send(JSON.stringify([type, ...params]));
+      }
     }
     return true;
   }
-  const client = clients.get(userId);
-  if (!client) return false;
 
-  client.send(JSON.stringify([type, ...params]));
+  if (!userId) {
+    for (const [, clientConnections] of clients) {
+      for (const client of clientConnections) {
+        client.send(JSON.stringify([type, ...params]));
+      }
+    }
+    return true;
+  }
+  const clientConnections = clients.get(userId);
+  if (!clientConnections) return false;
+
+  for (const client of clientConnections) {
+    client.send(JSON.stringify([type, ...params]));
+  }
+  return true;
+}
+
+export function sendMessageWS<T extends PayloadType>(type: T, params: PayloadTypeParams[T], ws: CustomWebSocket): boolean {
+  ws.send(JSON.stringify([type, ...params]));
   return true;
 }

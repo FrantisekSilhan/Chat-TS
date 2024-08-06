@@ -49,6 +49,7 @@ const VIPUsers: { [key: string]: string } = {
   "mthia": "linear-gradient(90deg, #F0AEF3 0%, #F0AEF3 32%, #FFF 32%)",
   "chromik": "linear-gradient(90deg, #FED1EF, #9ADCFF)",
   "tttie": "linear-gradient(90deg, #5BCEFA, #F5A9B8)",
+  "yellowbear": "#EC51E6",
 };
 
 export const register = (username: string, email: string, password: string): (IUser | IError) => {

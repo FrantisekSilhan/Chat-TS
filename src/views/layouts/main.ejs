@@ -4,49 +4,52 @@
   <title><%= page %> | <%= site %></title>
 
   <!-- Favicon -->
-  <link rel="icon" href="/images/logo.ico" type="image/x-icon">
-  <link rel="icon" href="/images/logo.png" type="image/png">
-  <link rel="icon" href="/images/logo.svg" type="image/svg">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="icon" href="/favicon.svg" type="image/svg">
 
   <!-- Basic accessibility tags -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Basic SEO tags -->
-  <meta name="url" content="https://www.slhn.cz/">
-  <meta name="identifier-URL" content="https://www.slhn.cz/">
+  <meta name="url" content="<%= siteUrl %>">
+  <meta name="identifier-URL" content="<%= siteUrl %>">
   <meta name="title" content="<%= page %> | <%= site %>">
-  <meta name="description" content="I write code and do stuff">
-  <meta name="keywords" content="slhn, developer, programmer, software">
+  <!--<meta name="description" content="">-->
+  <!--<meta name="keywords" content="">-->
   <% if (isError) { %>
     <meta name="robots" content="noindex, follow">
   <% } else { %>
     <meta name="robots" content="index, nofollow">
   <% } %>
-  <meta name="author" content="František Šilhán">
-  <meta name="reply-to" content="frantisek@slhn.cz">
+  <!--<meta name="author" content="">-->
+  <!--<meta name="reply-to" content="">-->
   <meta name="language" content="en">
   <meta name="rating" content="general">
   <meta name="theme-color" content="#aaa3c2">
   
   <!-- Open Graph -->
-  <meta property="og:url" content="https://www.slhn.cz/">
+  <meta property="og:url" content="<%= siteUrl %>">
   <meta property="og:type" content="website">
   <meta property="og:title" content="<%= page %> | <%= site %>">
-  <meta property="og:description" content="I write code and do stuff">
-  <meta property="og:image" content="https://www.slhn.cz/images/logo.png">
-  <meta property="og:site_name" content="slhn.cz">
+  <!--<meta property="og:description" content="">-->
+  <meta property="og:image" content="<%= siteUrl %>/favicon.png">
+  <meta property="og:site_name" content="<%= site %>">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:url" content="https://www.slhn.cz/">
-  <meta name="twitter:site" content="@frantisekslhn">
+  <meta name="twitter:url" content="<%= siteUrl %>">
+  <!--<meta name="twitter:site" content="<%= site %>">-->
   <meta name="twitter:title" content="<%= page %> | <%= site %>">
-  <meta name="twitter:description" content="I write code and do stuff">
-  <meta name="twitter:image" content="https://www.slhn.cz/images/logo.png">
+  <!--<meta name="twitter:description" content="">-->
+  <meta name="twitter:image" content="<%= siteUrl %>/favicon.png">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/styles/style.css">
+  <link rel="preload" href="/styles/reset.css" as="style">
+  <link rel="preload" href="/styles/main.css" as="style">
+  <link rel="preload" href="/styles/text.css" as="style">
+  <link rel="stylesheet" href="/style.css?minify=false">
 </head>
 <body>
   <div class="site">
@@ -63,7 +66,7 @@
       <%- body %>
     </main>
     <footer class="footer">
-      <p>© 2024 slhn.cz</p>
+      <p>© 2024 <%= siteUrl %></p>
     </footer>
   </div>
   <% if (user) { %>

@@ -1,0 +1,77 @@
+.title {
+  font-size: var(--font-s5);
+  line-height: 1.2;
+}
+
+.text--s4 {
+  font-size: var(--font-s4);
+}
+
+.text--s3 {
+  font-size: var(--font-s3);
+}
+
+.text--s2 {
+  font-size: var(--font-s2);
+}
+
+.text--s1 {
+  font-size: var(--font-s1);
+}
+
+.text {
+  max-width: 77ch;
+}
+
+.text-w {
+  max-width: min(77ch, 35.5rem);
+}
+
+.text--center {
+  text-align: center;
+}
+
+.text-wrapper {
+  padding: 0 1em;
+}
+
+.text-wrapper--form {
+  max-width: 32em;
+}
+
+.text-wrapper--center {
+  margin: 0 auto;
+}
+
+.text--bold {
+  font-weight: bold;
+}
+
+.text--error, .text--danger {
+  color: hsl(var(--error));
+}
+
+.text--success {
+  color: hsl(var(--success));
+}
+
+.text--warning {
+  color: hsl(var(--warning));
+}
+
+.text--info {
+  color: hsl(var(--info));
+}
+
+.mono-select-all {
+  font-family: var(--monospace);
+  user-select: all;
+}
+
+.text--uppercase {
+  text-transform: uppercase;
+}
+
+.text--crossed {
+  text-decoration: line-through;
+}
