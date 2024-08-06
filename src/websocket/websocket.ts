@@ -149,7 +149,7 @@ export const initializeWebSocket = (server: Server, sessionMiddleware: any) => {
       const result = messageHandler(ws, message);
       if (isIError(result)) {
         logger.error(JSON.stringify(result));
-        closeConnection(ws, result.message);
+        sendMessageWS(PayloadType.SERVER_ERROR, [result.message], ws);
       }
     });
 

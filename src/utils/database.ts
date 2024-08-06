@@ -121,7 +121,7 @@ export interface IPrivateMessage {
 
 export function querySingle<T>(sql: string, params: any[]): T | undefined {
   try {
-    return db.prepare(sql).get(...params) as T | undefined;
+    return db.prepare(sql).get(...params) as T || undefined;
   } catch (err) {
     logger.error("querySingle", err);
     return undefined;
@@ -130,7 +130,7 @@ export function querySingle<T>(sql: string, params: any[]): T | undefined {
 
 export function queryAll<T>(sql: string, params?: any[]): T[] | undefined {
   try {
-    return db.prepare(sql).all(...(params || [])) as T[] | undefined;
+    return db.prepare(sql).all(...(params || [])) as T[] || undefined;
   } catch (err) {
     logger.error("queryAll", err);
     return undefined;
