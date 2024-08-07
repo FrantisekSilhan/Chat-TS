@@ -101,3 +101,7 @@
   outline: none;
   height: var(--chat-height-input);
 }
+
+.chat__length {
+  display: none;
+}

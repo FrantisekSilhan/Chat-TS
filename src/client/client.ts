@@ -303,6 +303,23 @@ const setupChat = () => {
       chatButton.classList.remove("btn--disabled");
     }
 
+    if (inputText.length >= (MAX_MESSAGE_LENGTH - 100)) {
+      const lengthWarning = document.getElementById("length-warning");
+
+      if (lengthWarning) {
+        lengthWarning.textContent = `(${MAX_MESSAGE_LENGTH - inputText.length})`;
+        lengthWarning.classList.add("visible");
+      }
+    }
+
+    if (inputText.length < (MAX_MESSAGE_LENGTH - 100)) {
+      const lengthWarning = document.getElementById("length-warning");
+
+      if (lengthWarning) {
+        lengthWarning.classList.remove("visible");
+      }
+    }
+
     const chatTextAreaWidth = (chatTextArea.clientWidth - (2 * parseFloat(getComputedStyle(chatTextArea).paddingInline)));
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");

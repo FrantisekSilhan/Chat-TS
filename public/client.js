@@ -309,6 +309,19 @@ var setupChat = function () {
         if (inputText.length <= MAX_MESSAGE_LENGTH && chatButton.classList.contains("btn--disabled")) {
             chatButton.classList.remove("btn--disabled");
         }
+        if (inputText.length >= (MAX_MESSAGE_LENGTH - 100)) {
+            var lengthWarning = document.getElementById("length-warning");
+            if (lengthWarning) {
+                lengthWarning.textContent = "(".concat(MAX_MESSAGE_LENGTH - inputText.length, ")");
+                lengthWarning.classList.add("visible");
+            }
+        }
+        if (inputText.length < (MAX_MESSAGE_LENGTH - 100)) {
+            var lengthWarning = document.getElementById("length-warning");
+            if (lengthWarning) {
+                lengthWarning.classList.remove("visible");
+            }
+        }
         var chatTextAreaWidth = (chatTextArea.clientWidth - (2 * parseFloat(getComputedStyle(chatTextArea).paddingInline)));
         var canvas = document.createElement("canvas");
         var context = canvas.getContext("2d");
