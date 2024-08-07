@@ -39,14 +39,14 @@ export enum PayloadType {
 
 type PayloadTypeParams = {
   [PayloadType.SERVER_CLOSE]: [];
-  [PayloadType.CLIENT_MESSAGE]: [string];
+  [PayloadType.CLIENT_MESSAGE]: [string, string];
   [PayloadType.SERVER_MESSAGE]: [ExecuteResult, string, string];
-  [PayloadType.CLIENT_PRIVATE_MESSAGE]: [ExecuteResult, string];
+  [PayloadType.CLIENT_PRIVATE_MESSAGE]: [ExecuteResult, string, string];
   [PayloadType.SERVER_PRIVATE_MESSAGE]: [ExecuteResult, string, string];
   [PayloadType.CLIENT_USER_DATA]: [ExecuteResult];
   [PayloadType.SERVER_USER_DATA]: [ExecuteResult, string, string, string];
   [PayloadType.WELCOME]: [ExecuteResult, string, string];
-  [PayloadType.SERVER_SUCCESSFUL_MESSAGE]: [string];
+  [PayloadType.SERVER_SUCCESSFUL_MESSAGE]: [string, string];
   [PayloadType.SERVER_ERROR_CLOSE]: [string];
   [PayloadType.SERVER_ERROR]: [string];
 }
@@ -181,38 +181,26 @@ export const initializeWebSocket = (server: Server, sessionMiddleware: any) => {
   return wss;
 };
 
-const isPayloadOfType = <T extends PayloadType>(type: T, payload: any[]): payload is PayloadTypeParams[T] => {
+const isClientPayloadOfType = <T extends PayloadType>(type: T, payload: any[]): payload is PayloadTypeParams[T] => {
   const isBigInt = (value: any): value is bigint => (typeof value === "bigint" || typeof value === "number");
   switch (type) {
     case PayloadType.CLIENT_MESSAGE:
-      return payload.length === 1 && typeof payload[0] === "string";
-    case PayloadType.CLIENT_PRIVATE_MESSAGE:
       return payload.length === 2 &&
+      typeof payload[0] === "string" &&
+      payload[0].length >= shared.config.length.message.min &&
+      payload[0].length <= shared.config.length.message.max &&
+      typeof payload[1] === "string" &&
+      payload[1].length === shared.config.length.tempId.len;
+    case PayloadType.CLIENT_PRIVATE_MESSAGE:
+      return payload.length === 3 &&
         isBigInt(payload[0]) &&
-        typeof payload[1] === "string";
+        typeof payload[1] === "string" &&
+        payload[1].length >= shared.config.length.message.min &&
+        payload[1].length <= shared.config.length.message.max &&
+        typeof payload[2] === "string" &&
+        payload[2].length === shared.config.length.tempId.len;
     case PayloadType.CLIENT_USER_DATA:
       return payload.length === 1 && isBigInt(payload[0]);
-    case PayloadType.SERVER_MESSAGE:
-      return payload.length === 3 &&
-        isBigInt(payload[0]) &&
-        typeof payload[1] === "string" &&
-        typeof payload[2] === "string";
-    case PayloadType.SERVER_PRIVATE_MESSAGE:
-      return payload.length === 3 &&
-          isBigInt(payload[0]) &&
-          typeof payload[1] === "string" &&
-          typeof payload[2] === "string";
-    case PayloadType.SERVER_USER_DATA:
-      return payload.length === 4 &&
-        isBigInt(payload[0]) &&
-        typeof payload[1] === "string" &&
-        typeof payload[2] === "string" &&
-        typeof payload[3] === "string";
-    case PayloadType.WELCOME:
-      return payload.length === 3 &&
-        isBigInt(payload[0]) &&
-        typeof payload[1] === "string" &&
-        typeof payload[2] === "string";
     default:
       return false;
   }
@@ -222,8 +210,8 @@ const messageHandler = (ws: CustomWebSocket, message: string): (boolean | IError
   const data = JSON.parse(message) as [PayloadType, ...any[]];
   const [type, ...payload] = data;
 
-  if (!isPayloadOfType(type, payload)) {
-    logger.error(JSON.stringify(["Invalid Payload", message]));
+  if (!isClientPayloadOfType(type, payload)) {
+    logger.error(JSON.stringify(["Invalid Payload", ws.userId]));
     return { message: "Invalid Payload" };
   }
   
@@ -258,7 +246,7 @@ const messageHandler = (ws: CustomWebSocket, message: string): (boolean | IError
 };
 
 const handleRequestClientMessage = (ws: CustomWebSocket, payload: PayloadTypeParams[PayloadType.CLIENT_MESSAGE]): (boolean | IError) => {
-  const [ message ] = payload;
+  const [ message, tempId ] = payload;
   const userId = ws.userId;
 
   const snowflake = timestamp(userId);
@@ -269,7 +257,7 @@ const handleRequestClientMessage = (ws: CustomWebSocket, payload: PayloadTypePar
 
   sendMessage(PayloadType.SERVER_MESSAGE, [userId, message, snowflake], undefined, userId);
 
-  if (!sendMessageWS(PayloadType.SERVER_SUCCESSFUL_MESSAGE, [snowflake], ws)) {
+  if (!sendMessageWS(PayloadType.SERVER_SUCCESSFUL_MESSAGE, [tempId, snowflake], ws)) {
     return { message: "Error Replying To Sender" };
   }
 
@@ -277,7 +265,7 @@ const handleRequestClientMessage = (ws: CustomWebSocket, payload: PayloadTypePar
 };
 
 const handleRequestClientPrivateMessage = (ws: CustomWebSocket, payload: PayloadTypeParams[PayloadType.CLIENT_PRIVATE_MESSAGE]): (boolean | IError) => {
-  const [ receiverId, message ] = payload;
+  const [ receiverId, message, tempId ] = payload;
   const userId = ws.userId;
 
   const snowflake = timestamp(userId);
@@ -294,7 +282,7 @@ const handleRequestClientPrivateMessage = (ws: CustomWebSocket, payload: Payload
 
   sendMessage(PayloadType.SERVER_PRIVATE_MESSAGE, [userId, message, snowflake], receiverId)
 
-  if (!sendMessageWS(PayloadType.SERVER_SUCCESSFUL_MESSAGE, [snowflake], ws)) {
+  if (!sendMessageWS(PayloadType.SERVER_SUCCESSFUL_MESSAGE, [tempId, snowflake], ws)) {
     return { message: "Error Replying To Sender" };
   }
 

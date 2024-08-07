@@ -32,6 +32,13 @@ export const config = {
     email: {
       min: 5,
       max: 64,
+    },
+    message: {
+      min: 1,
+      max: 2000,
+    },
+    tempId: {
+      len: 21,
     }
   },
 };

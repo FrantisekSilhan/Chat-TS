@@ -63,6 +63,10 @@
   color: hsl(var(--info));
 }
 
+.text--disabled {
+  color: hsl(var(--text-hover));
+}
+
 .mono-select-all {
   font-family: var(--monospace);
   user-select: all;

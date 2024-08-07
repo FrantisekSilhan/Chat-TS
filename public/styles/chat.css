@@ -6,11 +6,26 @@
   flex-direction: column;
   justify-content: flex-end;
   min-height: 100vh;
+  margin-bottom: var(--chat-height);
 }
 
 .message {
   text-shadow: 0 0 0px hsl(var(--color-black));
   word-wrap: break-word;
+  white-space: pre-wrap;
+  display: flex;
+}
+
+.message > div {
+  word-break: break-all;
+}
+
+.message > span {
+  flex-shrink: 0;
+}
+
+.message--pending > div {
+  color: hsl(var(--text-hover));
 }
 
 .message__displayname {
@@ -31,8 +46,58 @@
 }
 
 .message:nth-child(odd) {
-  background-color: #080C0C;
+  background-color: hsl(var(--background-hover));
 }
 .message:nth-child(even) {
-  background-color: #0D1111;
+  background-color: hsl(var(--background));
+}
+
+.chat__input {
+  font-size: 1rem;
+  position: fixed;
+  inset: 0;
+  top: unset;
+  display: flex;
+  gap: .5em;
+  padding: .25em;
+  background-color: hsl(var(--primary) / .5);
+  box-sizing: border-box;
+  backdrop-filter: blur(10px);
+  height: var(--chat-height);
+  align-items: center;
+}
+
+.chat__warning {
+  position: absolute;
+  bottom: var(--chat-height);
+  left: 0;
+  right: 0;
+  text-align: center;
+  background-color: hsl(var(--background));
+  padding: .5em 1em;
+  display: none;
+  cursor: pointer;
+  color: hsl(var(--text));
+}
+
+.chat__warning:hover {
+  color: hsl(var(--text-hover));
+}
+
+.chat__textarea {
+  font-size: 1rem;
+  flex-grow: 1;
+  background: hsl(var(--background));
+  border-radius: 1.5em;
+  padding: .5em 1em;
+  line-height: 1.2em;
+  resize: none;
+  width: 100%;
+  border: none;
+  color: hsl(var(--text));
+  margin: 0;
+  font-family: inherit;
+  max-height: 6em;
+  outline: none;
+  height: var(--chat-height-input);
 }

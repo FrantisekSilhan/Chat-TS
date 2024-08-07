@@ -46,6 +46,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 var _this = this;
 var ws;
 var exit = false;
+var autoScroll = true;
 var PayloadType;
 (function (PayloadType) {
     PayloadType[PayloadType["SERVER_CLOSE"] = 0] = "SERVER_CLOSE";
@@ -65,6 +66,7 @@ var TIMESTAMP_BITS = 46;
 var SEQUENCE_BITS = 12;
 var ID_BITS = 26;
 var USER_DATA_REFRESH = 1000 * 60;
+var MAX_MESSAGE_LENGTH = 2000;
 var timestampToDate = function (snowflakeString) {
     var snowflake = BigInt(snowflakeString);
     var timestampMask = (BigInt(1) << BigInt(TIMESTAMP_BITS)) - BigInt(1);
@@ -75,6 +77,9 @@ var timestampToDate = function (snowflakeString) {
     var id = snowflake & idMask;
     var actualTimestamp = BigInt(timestamp) + EPOCH;
     return [actualTimestamp, id, sequence];
+};
+var generateRandomTempId = function () {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 var connectWebSocket = function () {
     var host = window.location.host;
@@ -114,12 +119,25 @@ var messageHandler = function (message) {
         case PayloadType.SERVER_MESSAGE:
             handleServerMessage(payload);
             break;
+        case PayloadType.SERVER_SUCCESSFUL_MESSAGE:
+            var tempId = payload[0];
+            if (pendingSentMessages[tempId]) {
+                pendingSentMessages[tempId].resolve(payload[1]);
+                delete pendingSentMessages[tempId];
+            }
+            break;
         default:
             console.log(data);
             break;
     }
 };
 var pendingUserDataRequests = {};
+var pendingSentMessages = {};
+var requestSentMessage = function (tempId) {
+    return new Promise(function (resolve, reject) {
+        pendingSentMessages[tempId] = { resolve: resolve, reject: reject };
+    });
+};
 var requestUserData = function (userId) {
     return new Promise(function (resolve, reject) {
         pendingUserDataRequests[userId.toString()] = { resolve: resolve, reject: reject };
@@ -152,6 +170,37 @@ var handleServerMessage = function (payload) { return __awaiter(_this, void 0, v
         }
     });
 }); };
+var handleClientMessage = function (message, tempId) { return __awaiter(_this, void 0, void 0, function () {
+    var userData, displayname, color, _, messageId, messageElement, err_2;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                userData = localStorageManager.getMyData();
+                displayname = userData[0], color = userData[1], _ = userData[2];
+                createChatMessage(displayname, color, message, "", tempId);
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 3, , 4]);
+                return [4 /*yield*/, requestSentMessage(tempId)];
+            case 2:
+                messageId = _a.sent();
+                messageElement = document.querySelector("[data-timestamp=\"".concat(tempId, "\"]"));
+                if (!messageElement) {
+                    console.error("Message element not found");
+                    return [2 /*return*/];
+                }
+                messageElement.dataset.timestamp = messageId;
+                messageElement.classList.remove("message--pending");
+                messageElement.querySelector(".message__timestamp").textContent = formatTimestamp(timestampToDate(messageId)[0]);
+                return [3 /*break*/, 4];
+            case 3:
+                err_2 = _a.sent();
+                console.error(err_2);
+                return [3 /*break*/, 4];
+            case 4: return [2 /*return*/];
+        }
+    });
+}); };
 var formatTimestamp = function (timestamp) {
     var date = new Date(Number(timestamp));
     var localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 6000));
@@ -175,28 +224,43 @@ var formatTimestamp = function (timestamp) {
         return "".concat(day, "/").concat(month, "/").concat(year, " ").concat(formattedTime);
     }
 };
-var createChatMessage = function (displayname, color, message, timestamp) {
+var createChatMessage = function (displayname, color, message, timestamp, tempId) {
     var messageElement = document.createElement("li");
     var displaynameElement = document.createElement("span");
     var timestampElement = document.createElement("span");
+    var messageSeparator = document.createElement("span");
+    var messageText = document.createElement("div");
     displaynameElement.classList.add("message__displayname");
     timestampElement.classList.add("message__timestamp");
     messageElement.classList.add("message");
     displaynameElement.textContent = displayname;
-    timestampElement.textContent = formatTimestamp(timestampToDate(timestamp)[0]);
+    timestampElement.textContent = tempId ? formatTimestamp(BigInt(Date.now())) : formatTimestamp(timestampToDate(timestamp)[0]);
+    messageText.textContent = message;
+    messageSeparator.textContent = ": ";
     displaynameElement.style.background = color;
     displaynameElement.style.color = "transparent";
     displaynameElement.style.backgroundClip = "text";
+    if (tempId) {
+        messageElement.classList.add("message--pending");
+    }
     messageElement.appendChild(timestampElement);
     messageElement.appendChild(displaynameElement);
-    messageElement.appendChild(document.createTextNode(": " + message));
-    messageElement.dataset.timestamp = timestamp;
+    messageElement.appendChild(messageSeparator);
+    messageElement.appendChild(messageText);
+    messageElement.dataset.timestamp = tempId || timestamp;
     var chatElement = document.getElementById("chat");
-    if (!chatElement) {
-        console.error("Chat element not found");
+    var chatWarning = document.getElementById("chat-warning");
+    if (!chatElement || !chatWarning) {
+        console.error("Chat elements not found");
         return;
     }
     chatElement.appendChild(messageElement);
+    if (autoScroll) {
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+    else {
+        chatWarning.classList.add("visible");
+    }
 };
 var localStorageManager = {
     setUserData: function (payload) {
@@ -211,16 +275,101 @@ var localStorageManager = {
     },
     setWelcomeData: function (payload) {
         var userId = payload[0], userData = payload.slice(1);
-        var stringUserId = userId.toString();
-        if (pendingUserDataRequests[stringUserId]) {
-            pendingUserDataRequests[stringUserId].resolve(userData);
-            delete pendingUserDataRequests[stringUserId];
-        }
-        localStorage.setItem(stringUserId, JSON.stringify(__spreadArray(__spreadArray([], userData, true), [Date.now().toString()], false)));
+        localStorage.setItem("me", JSON.stringify(__spreadArray(__spreadArray([], userData, true), [Date.now().toString()], false)));
+        localStorage.setItem("meId", JSON.stringify([userId]));
     },
     getUserData: function (userId) {
         var userData = localStorage.getItem(userId.toString());
         return userData ? JSON.parse(userData) : null;
     },
+    getMyData: function () {
+        var userData = localStorage.getItem("me");
+        return userData ? JSON.parse(userData) : null;
+    },
+    getMyId: function () {
+        var userId = localStorage.getItem("me");
+        return userId ? JSON.parse(userId)[0] : null;
+    }
+};
+var setupChat = function () {
+    var chatTextArea = document.getElementById("chat-textarea");
+    var chatButton = document.getElementById("chat-button");
+    var chatWarning = document.getElementById("chat-warning");
+    var body = document.getElementsByTagName("body")[0];
+    var lineHeight = parseFloat(getComputedStyle(body).getPropertyValue("--chat-line-height"));
+    if (!chatTextArea || !chatButton || !chatWarning) {
+        console.error("Chat elements not found");
+        return;
+    }
+    chatTextArea.addEventListener("input", function (e) {
+        var inputText = e.target.value;
+        if (inputText.length > MAX_MESSAGE_LENGTH) {
+            chatButton.classList.add("btn--disabled");
+        }
+        if (inputText.length <= MAX_MESSAGE_LENGTH && chatButton.classList.contains("btn--disabled")) {
+            chatButton.classList.remove("btn--disabled");
+        }
+        var chatTextAreaWidth = (chatTextArea.clientWidth - (2 * parseFloat(getComputedStyle(chatTextArea).paddingInline)));
+        var canvas = document.createElement("canvas");
+        var context = canvas.getContext("2d");
+        context.font = window.getComputedStyle(chatTextArea).font;
+        var lines = inputText.split("\n");
+        var formattedText = "";
+        lines.forEach(function (lineText, lineIndex) {
+            var words = lineText.split(" ");
+            var line = "";
+            words.forEach(function (word, _) {
+                var testLine = line + word + " ";
+                var testLineWidth = context.measureText(testLine).width;
+                if (testLineWidth > chatTextAreaWidth && line !== "") {
+                    formattedText += line.trim() + "\n";
+                    line = word + " ";
+                }
+                else {
+                    line = testLine;
+                }
+            });
+            formattedText += line.trim() + (lineIndex < lines.length - 1 ? "\n" : "");
+        });
+        var numLines = formattedText.split("\n").length;
+        body.style.setProperty("--chat-height-input", Math.min((Math.ceil((numLines * lineHeight) * 10) / 10), 8) + "em");
+    });
+    chatTextArea.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            chatButton.dispatchEvent(new Event("click", {}));
+        }
+        if (e.key === "Enter" && e.shiftKey) {
+            setTimeout(function () {
+                window.scrollTo(0, document.body.scrollHeight);
+            }, 10);
+        }
+    });
+    window.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+            e.preventDefault();
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+    });
+    chatButton.addEventListener("click", function (e) {
+        e.preventDefault();
+        if (chatTextArea.value && chatTextArea.value.length <= MAX_MESSAGE_LENGTH) {
+            var tempId = generateRandomTempId();
+            handleClientMessage(chatTextArea.value, tempId);
+            ws.send(JSON.stringify([PayloadType.CLIENT_MESSAGE, chatTextArea.value, tempId]));
+            chatTextArea.value = "";
+            chatTextArea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
+    document.addEventListener("scroll", function () {
+        autoScroll = (window.scrollY + lineHeight * 16 * 5) >= document.body.scrollHeight - window.innerHeight;
+        if (autoScroll) {
+            chatWarning.classList.remove("visible");
+        }
+    });
+    chatWarning.addEventListener("click", function () {
+        window.scrollTo(0, document.body.scrollHeight);
+    });
 };
 connectWebSocket();
+setupChat();

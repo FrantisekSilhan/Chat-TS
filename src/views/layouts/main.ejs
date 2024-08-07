@@ -52,7 +52,7 @@
   <link rel="stylesheet" href="/style.css?minify=false">
 </head>
 <body>
-  <div class="site">
+  <!--<div class="site">
     <header>
       <nav class="navbar">
         <menu class="navbar__menu">
@@ -61,16 +61,16 @@
           <li class="navbar__item"><a class="navbar__link" href="/contact">Contact</a></li>
         </menu>
       </nav>
-    </header>
+    </header>-->
     <main class="main">
       <%- body %>
     </main>
-    <footer class="footer">
+    <!--<footer class="footer">
       <p>© 2024 <%= siteUrl %></p>
     </footer>
-  </div>
+  </div>-->
   <% if (user) { %>
-    <script nonce="<%= cspNonce %>" src="/websocket.js"></script>
+    <script nonce="<%= cspNonce %>" src="/client.js"></script>
   <% } %>
 </body>
 </html>

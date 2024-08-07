@@ -1,8 +1,8 @@
 :root {
   --text: 218 27% 94%;
   --text-hover: 219 28% 88%;
-  --background: 220 16% 22%;
-  --background-hover: 222 16% 28%;
+  --background: 180 13% 6%;
+  --background-hover: 180 20% 4%;
   --primary: 179 25% 65%;
   --accent: 213 32% 52%;
   --error: 354 42% 56%;
@@ -42,4 +42,27 @@ html {
 body {
   max-width: 2560px;
   margin: 0 auto;
+  --chat-line-height: 1.2em;
+  --chat-height-input: var(--chat-line-height);
+  --chat-height: min(calc(var(--chat-height-input) + 2em), 8em);
+}
+
+.btn {
+  display: inline-block;
+  padding: .5em 1em;
+  border-radius: var(--border-radius);
+  background-color: hsl(var(--text));
+  color: hsl(var(--background));
+  text-align: center;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .2s;
+}
+
+.btn--disabled {
+  background-color: hsl(var(--background));
+  color: hsl(var(--text));
+  cursor: not-allowed;
 }
