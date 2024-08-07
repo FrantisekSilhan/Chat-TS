@@ -56,8 +56,13 @@ const timestampToDate = (snowflakeString: string): [ExecuteResult, ExecuteResult
   return [actualTimestamp as unknown as ExecuteResult, id as ExecuteResult, sequence];
 };
 
-const generateRandomTempId = () => {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+const generateRandomTempId = (length = 21) => {
+  const randomString = () => Math.random().toString(36).substring(2);
+  let tempId = "";
+  while (tempId.length < length) {
+    tempId += randomString();
+  }
+  return tempId.substring(0, length);
 }
 
 const connectWebSocket = () => {

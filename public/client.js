@@ -78,8 +78,14 @@ var timestampToDate = function (snowflakeString) {
     var actualTimestamp = BigInt(timestamp) + EPOCH;
     return [actualTimestamp, id, sequence];
 };
-var generateRandomTempId = function () {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+var generateRandomTempId = function (length) {
+    if (length === void 0) { length = 21; }
+    var randomString = function () { return Math.random().toString(36).substring(2); };
+    var tempId = "";
+    while (tempId.length < length) {
+        tempId += randomString();
+    }
+    return tempId.substring(0, length);
 };
 var connectWebSocket = function () {
     var host = window.location.host;

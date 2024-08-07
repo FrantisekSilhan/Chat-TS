@@ -25,7 +25,7 @@
 }
 
 .message--pending > div {
-  color: hsl(var(--text-hover));
+  color: hsl(var(--text-pending));
 }
 
 .message__displayname {

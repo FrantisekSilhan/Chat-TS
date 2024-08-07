@@ -1,6 +1,7 @@
 :root {
   --text: 218 27% 94%;
   --text-hover: 219 28% 88%;
+  --text-pending: 0 0% 60%;
   --background: 180 13% 6%;
   --background-hover: 180 20% 4%;
   --primary: 179 25% 65%;
