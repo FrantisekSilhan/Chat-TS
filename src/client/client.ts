@@ -34,6 +34,10 @@ type PayloadTypeParams = {
 
 const emotes = new Map([
   ["buh", "/emotes/buh"],
+  ["GAGAGA", "/emotes/gagaga"],
+  ["NOOOO", "/emotes/noooo"],
+  ["HUH", "/emotes/huh"],
+  ["xdd", "/emotes/xdd"]
 ]);
 
 const EPOCH = 1722893503219n;

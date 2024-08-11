@@ -63,6 +63,10 @@ var PayloadType;
 })(PayloadType || (PayloadType = {}));
 var emotes = new Map([
     ["buh", "/emotes/buh"],
+    ["GAGAGA", "/emotes/gagaga"],
+    ["NOOOO", "/emotes/noooo"],
+    ["HUH", "/emotes/huh"],
+    ["xdd", "/emotes/xdd"]
 ]);
 var EPOCH = 1722893503219n;
 var TIMESTAMP_BITS = 46;
