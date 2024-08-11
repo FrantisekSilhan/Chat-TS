@@ -230,6 +230,35 @@ var formatTimestamp = function (timestamp) {
         return "".concat(day, "/").concat(month, "/").concat(year, " ").concat(formattedTime);
     }
 };
+function splitStringByRegex(inputString, regexPattern) {
+    var result = [];
+    var lastIndex = 0;
+    var match;
+    while ((match = regexPattern.exec(inputString)) !== null) {
+        result.push(inputString.slice(lastIndex, match.index));
+        result.push(match[0]);
+        lastIndex = regexPattern.lastIndex;
+    }
+    result.push(inputString.slice(lastIndex));
+    return result;
+}
+function render(message, textElement) {
+    var regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
+    var divided = splitStringByRegex(message, regex);
+    divided.forEach(function (text) {
+        if (text.startsWith("http")) {
+            var link = document.createElement("a");
+            link.href = text;
+            link.target = "_blank";
+            link.textContent = text;
+            link.classList.add("message__link");
+            textElement.insertAdjacentElement("beforeend", link);
+        }
+        else {
+            textElement.insertAdjacentText("beforeend", text);
+        }
+    });
+}
 var createChatMessage = function (displayname, color, message, timestamp, tempId) {
     var messageElement = document.createElement("li");
     var displaynameElement = document.createElement("span");
@@ -241,8 +270,8 @@ var createChatMessage = function (displayname, color, message, timestamp, tempId
     messageElement.classList.add("message");
     displaynameElement.textContent = displayname;
     timestampElement.textContent = tempId ? formatTimestamp(BigInt(Date.now())) : formatTimestamp(timestampToDate(timestamp)[0]);
-    messageText.textContent = message;
     messageSeparator.textContent = ": ";
+    render(message, messageText);
     displaynameElement.style.background = color;
     displaynameElement.style.color = "transparent";
     displaynameElement.style.backgroundClip = "text";

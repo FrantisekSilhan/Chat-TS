@@ -183,7 +183,7 @@ const handleClientMessage = async (message: string, tempId: string) => {
 const formatTimestamp = (timestamp: ExecuteResult) => {
   const date = new Date(Number(timestamp));
   const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 6000));
-  
+
   const now = new Date();
   const localNow = new Date(now.getTime() - (now.getTimezoneOffset() * 6000));
 
@@ -206,6 +206,38 @@ const formatTimestamp = (timestamp: ExecuteResult) => {
   }
 }
 
+function splitStringByRegex(inputString: string, regexPattern: RegExp): string[] {
+  const result = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regexPattern.exec(inputString)) !== null) {
+    result.push(inputString.slice(lastIndex, match.index));
+    result.push(match[0]);
+    lastIndex = regexPattern.lastIndex;
+  }
+
+  result.push(inputString.slice(lastIndex));
+  return result;
+}
+
+function render(message: string, textElement: HTMLDivElement) {
+  const regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
+  const divided = splitStringByRegex(message, regex);
+  divided.forEach((text) => {
+    if (text.startsWith("http")) {
+      const link = document.createElement("a");
+      link.href = text;
+      link.target = "_blank";
+      link.textContent = text;
+      link.classList.add("message__link");
+      textElement.insertAdjacentElement("beforeend", link);
+    } else {
+      textElement.insertAdjacentText("beforeend", text);
+    }
+  });
+}
+
 const createChatMessage = (displayname: string, color: string, message: string, timestamp: string, tempId?: string) => {
   const messageElement = document.createElement("li");
   const displaynameElement = document.createElement("span");
@@ -216,11 +248,12 @@ const createChatMessage = (displayname: string, color: string, message: string, 
   displaynameElement.classList.add("message__displayname");
   timestampElement.classList.add("message__timestamp");
   messageElement.classList.add("message");
-  
+
   displaynameElement.textContent = displayname;
   timestampElement.textContent = tempId ? formatTimestamp(BigInt(Date.now())) : formatTimestamp(timestampToDate(timestamp)[0]);
-  messageText.textContent = message;
   messageSeparator.textContent = ": ";
+
+  render(message, messageText);
 
   displaynameElement.style.background = color;
   displaynameElement.style.color = "transparent";
@@ -233,7 +266,7 @@ const createChatMessage = (displayname: string, color: string, message: string, 
   messageElement.appendChild(displaynameElement);
   messageElement.appendChild(messageSeparator);
   messageElement.appendChild(messageText);
-  
+
 
   messageElement.dataset.timestamp = tempId || timestamp;
 
@@ -368,7 +401,7 @@ const setupChat = () => {
       }, 10);
     }
   });
-  
+
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       e.preventDefault();
