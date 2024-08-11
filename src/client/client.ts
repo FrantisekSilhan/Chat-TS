@@ -32,6 +32,10 @@ type PayloadTypeParams = {
   [PayloadType.SERVER_ERROR]: [string];
 }
 
+const emotes = new Map([
+  ["buh", "/emotes/buh"],
+]);
+
 const EPOCH = 1722893503219n;
 const TIMESTAMP_BITS = 46;
 const SEQUENCE_BITS = 12;
@@ -222,19 +226,36 @@ function splitStringByRegex(inputString: string, regexPattern: RegExp): string[]
 }
 
 function render(message: string, textElement: HTMLDivElement) {
-  const regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
+  const httpRegex = /https?:\/\/(www\.)?[-a-zA-Z-1-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
+  const regex = new RegExp(`${httpRegex.source}|:.{1,9}:`, "gi")
   const divided = splitStringByRegex(message, regex);
   divided.forEach((text) => {
-    if (text.startsWith("http")) {
+    if (httpRegex.test(text)) {
       const link = document.createElement("a");
       link.href = text;
       link.target = "_blank";
       link.textContent = text;
       link.classList.add("message__link");
       textElement.insertAdjacentElement("beforeend", link);
-    } else {
-      textElement.insertAdjacentText("beforeend", text);
+      return;
+    } else if (text.startsWith(":") && text.endsWith(":")) {
+      const link = emotes.get(text.slice(1, -1));
+      if (link) {
+        const picture = document.createElement("picture");
+        picture.classList.add("message_emote");
+        const src = document.createElement("source");
+        src.srcset = `${link}.avif`
+        src.type = "image/avif";
+        const img = document.createElement("img");
+        img.src = `${link}.webp`;
+        img.alt = text;
+        picture.appendChild(src);
+        picture.appendChild(img);
+        textElement.insertAdjacentElement("beforeend", picture);
+        return;
+      }
     }
+    textElement.insertAdjacentText("beforeend", text);
   });
 }
 

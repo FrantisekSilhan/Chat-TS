@@ -61,6 +61,9 @@ var PayloadType;
     PayloadType[PayloadType["SERVER_ERROR_CLOSE"] = 9] = "SERVER_ERROR_CLOSE";
     PayloadType[PayloadType["SERVER_ERROR"] = 10] = "SERVER_ERROR";
 })(PayloadType || (PayloadType = {}));
+var emotes = new Map([
+    ["buh", "/emotes/buh"],
+]);
 var EPOCH = 1722893503219n;
 var TIMESTAMP_BITS = 46;
 var SEQUENCE_BITS = 12;
@@ -243,20 +246,37 @@ function splitStringByRegex(inputString, regexPattern) {
     return result;
 }
 function render(message, textElement) {
-    var regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
+    var httpRegex = /https?:\/\/(www\.)?[-a-zA-Z-1-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
+    var regex = new RegExp("".concat(httpRegex.source, "|:.{1,9}:"), "gi");
     var divided = splitStringByRegex(message, regex);
     divided.forEach(function (text) {
-        if (text.startsWith("http")) {
+        if (httpRegex.test(text)) {
             var link = document.createElement("a");
             link.href = text;
             link.target = "_blank";
             link.textContent = text;
             link.classList.add("message__link");
             textElement.insertAdjacentElement("beforeend", link);
+            return;
         }
-        else {
-            textElement.insertAdjacentText("beforeend", text);
+        else if (text.startsWith(":") && text.endsWith(":")) {
+            var link = emotes.get(text.slice(1, -1));
+            if (link) {
+                var picture = document.createElement("picture");
+                picture.classList.add("message_emote");
+                var src = document.createElement("source");
+                src.srcset = "".concat(link, ".avif");
+                src.type = "image/avif";
+                var img = document.createElement("img");
+                img.src = "".concat(link, ".webp");
+                img.alt = text;
+                picture.appendChild(src);
+                picture.appendChild(img);
+                textElement.insertAdjacentElement("beforeend", picture);
+                return;
+            }
         }
+        textElement.insertAdjacentText("beforeend", text);
     });
 }
 var createChatMessage = function (displayname, color, message, timestamp, tempId) {
