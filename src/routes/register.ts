@@ -6,7 +6,6 @@ import { register } from "../utils/auth";
 import shared from "../shared";
 
 import { isIError } from "../app";
-import logger from "../utils/logger";
 
 const path = "/register";
 
@@ -37,7 +36,6 @@ interface IFormData {
 
 router.post("/", isNotAuthenticated, limiter, (req, res) => {
   const { username, email, password, confirmPassword }: IFormData = req.body;
-  logger.info(JSON.stringify({ username, email, password, confirmPassword }));
   req.session.formData = { username, email };
 
   if (!username || !email || !password || !confirmPassword) {

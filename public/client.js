@@ -60,6 +60,10 @@ var PayloadType;
     PayloadType[PayloadType["SERVER_SUCCESSFUL_MESSAGE"] = 8] = "SERVER_SUCCESSFUL_MESSAGE";
     PayloadType[PayloadType["SERVER_ERROR_CLOSE"] = 9] = "SERVER_ERROR_CLOSE";
     PayloadType[PayloadType["SERVER_ERROR"] = 10] = "SERVER_ERROR";
+    PayloadType[PayloadType["CLIENT_HISTORY"] = 11] = "CLIENT_HISTORY";
+    PayloadType[PayloadType["SERVER_HISTORY"] = 12] = "SERVER_HISTORY";
+    PayloadType[PayloadType["CLIENT_PRIVATE_HISTORY"] = 13] = "CLIENT_PRIVATE_HISTORY";
+    PayloadType[PayloadType["SERVER_PRIVATE_HISTORY"] = 14] = "SERVER_PRIVATE_HISTORY";
 })(PayloadType || (PayloadType = {}));
 var EPOCH = 1722893503219n;
 var TIMESTAMP_BITS = 46;
@@ -125,6 +129,9 @@ var messageHandler = function (message) {
         case PayloadType.SERVER_MESSAGE:
             handleServerMessage(payload);
             break;
+        case PayloadType.SERVER_HISTORY:
+            handleServerHistory(payload);
+            break;
         case PayloadType.SERVER_SUCCESSFUL_MESSAGE:
             var tempId = payload[0];
             if (pendingSentMessages[tempId]) {
@@ -171,19 +178,55 @@ var handleServerMessage = function (payload) { return __awaiter(_this, void 0, v
                 return [2 /*return*/];
             case 4:
                 displayname = userData[0], color = userData[1], _ = userData[2];
-                createChatMessage(displayname, color, message, timestamp);
+                createChatMessage(true, displayname, color, message, timestamp);
                 return [2 /*return*/];
         }
     });
 }); };
+var handleServerHistory = function (payload) {
+    var userDatas = new Map();
+    payload.forEach(function (_a) {
+        var userId = _a[0], message = _a[1], timestamp = _a[2];
+        return __awaiter(_this, void 0, void 0, function () {
+            var userData, localStorageUserData, err_2;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        userData = userDatas.get(userId);
+                        if (!!userData) return [3 /*break*/, 5];
+                        localStorageUserData = localStorageManager.getUserData(userId);
+                        if (!!localStorageUserData) return [3 /*break*/, 4];
+                        _b.label = 1;
+                    case 1:
+                        _b.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, requestUserData(userId)];
+                    case 2:
+                        localStorageUserData = _b.sent();
+                        return [3 /*break*/, 4];
+                    case 3:
+                        err_2 = _b.sent();
+                        console.error(err_2);
+                        return [2 /*return*/];
+                    case 4:
+                        userData = localStorageUserData;
+                        userDatas.set(userId, localStorageUserData);
+                        _b.label = 5;
+                    case 5:
+                        createChatMessage(false, userData[0], userData[1], message, timestamp);
+                        return [2 /*return*/];
+                }
+            });
+        });
+    });
+};
 var handleClientMessage = function (message, tempId) { return __awaiter(_this, void 0, void 0, function () {
-    var userData, displayname, color, _, messageId, messageElement, err_2;
+    var userData, displayname, color, _, messageId, messageElement, err_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 userData = localStorageManager.getMyData();
                 displayname = userData[0], color = userData[1], _ = userData[2];
-                createChatMessage(displayname, color, message, "", tempId);
+                createChatMessage(true, displayname, color, message, "", tempId);
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 3, , 4]);
@@ -200,8 +243,8 @@ var handleClientMessage = function (message, tempId) { return __awaiter(_this, v
                 messageElement.querySelector(".message__timestamp").textContent = formatTimestamp(timestampToDate(messageId)[0]);
                 return [3 /*break*/, 4];
             case 3:
-                err_2 = _a.sent();
-                console.error(err_2);
+                err_3 = _a.sent();
+                console.error(err_3);
                 return [3 /*break*/, 4];
             case 4: return [2 /*return*/];
         }
@@ -230,7 +273,7 @@ var formatTimestamp = function (timestamp) {
         return "".concat(day, "/").concat(month, "/").concat(year, " ").concat(formattedTime);
     }
 };
-var createChatMessage = function (displayname, color, message, timestamp, tempId) {
+var createChatMessage = function (isNew, displayname, color, message, timestamp, tempId) {
     var messageElement = document.createElement("li");
     var displaynameElement = document.createElement("span");
     var timestampElement = document.createElement("span");
@@ -260,7 +303,15 @@ var createChatMessage = function (displayname, color, message, timestamp, tempId
         console.error("Chat elements not found");
         return;
     }
-    chatElement.appendChild(messageElement);
+    if (isNew) {
+        chatElement.appendChild(messageElement);
+    }
+    else {
+        chatElement.prepend(messageElement);
+    }
+    if (!isNew) {
+        return;
+    }
     if (autoScroll) {
         window.scrollTo(0, document.body.scrollHeight);
     }

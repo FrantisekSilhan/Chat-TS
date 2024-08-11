@@ -14,6 +14,10 @@ enum PayloadType {
   SERVER_SUCCESSFUL_MESSAGE = 8,
   SERVER_ERROR_CLOSE = 9,
   SERVER_ERROR = 10,
+  CLIENT_HISTORY = 11,
+  SERVER_HISTORY = 12,
+  CLIENT_PRIVATE_HISTORY = 13,
+  SERVER_PRIVATE_HISTORY = 14,
 }
 
 type ExecuteResult = bigint;
@@ -30,6 +34,10 @@ type PayloadTypeParams = {
   [PayloadType.SERVER_SUCCESSFUL_MESSAGE]: [string, string];
   [PayloadType.SERVER_ERROR_CLOSE]: [string];
   [PayloadType.SERVER_ERROR]: [string];
+  [PayloadType.CLIENT_HISTORY]: [string];
+  [PayloadType.SERVER_HISTORY]: [ExecuteResult, string, string][];
+  [PayloadType.CLIENT_PRIVATE_HISTORY]: [ExecuteResult, string];
+  [PayloadType.SERVER_PRIVATE_HISTORY]: [ExecuteResult, string, string][];
 }
 
 const EPOCH = 1722893503219n;
@@ -109,6 +117,9 @@ const messageHandler = (message: string) => {
     case PayloadType.SERVER_MESSAGE:
       handleServerMessage(payload as PayloadTypeParams[PayloadType.SERVER_MESSAGE]);
       break;
+    case PayloadType.SERVER_HISTORY:
+      handleServerHistory(payload as PayloadTypeParams[PayloadType.SERVER_HISTORY]);
+      break;
     case PayloadType.SERVER_SUCCESSFUL_MESSAGE:
       const tempId = payload[0];
       if (pendingSentMessages[tempId]) {
@@ -129,7 +140,7 @@ const requestSentMessage = (tempId: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     pendingSentMessages[tempId] = { resolve, reject };
   });
-}
+};
 
 const requestUserData = (userId: ExecuteResult) => {
   return new Promise((resolve, reject) => {
@@ -153,15 +164,39 @@ const handleServerMessage = async (payload: PayloadTypeParams[PayloadType.SERVER
 
   const [displayname, color, _] = userData;
 
-  createChatMessage(displayname, color, message, timestamp);
-}
+  createChatMessage(true, displayname, color, message, timestamp);
+};
+
+const handleServerHistory = (payload: PayloadTypeParams[PayloadType.SERVER_HISTORY]) => {
+  const userDatas = new Map<ExecuteResult, [string, string, string]>();
+  
+  payload.forEach(async ([userId, message, timestamp]) => {
+    let userData = userDatas.get(userId);
+
+    if (!userData) {
+      let localStorageUserData = localStorageManager.getUserData(userId);
+      if (!localStorageUserData) {
+        try {
+          localStorageUserData = await requestUserData(userId);
+        } catch (err) {
+          console.error(err);
+          return;
+        }
+      }
+      userData = localStorageUserData;
+      userDatas.set(userId, localStorageUserData);
+    }
+
+    createChatMessage(false, userData![0], userData![1], message, timestamp);
+  });
+};
 
 const handleClientMessage = async (message: string, tempId: string) => {
   let userData = localStorageManager.getMyData();
 
   const [displayname, color, _] = userData;
 
-  createChatMessage(displayname, color, message, "", tempId);
+  createChatMessage(true, displayname, color, message, "", tempId);
 
   try {
     const messageId = await requestSentMessage(tempId);
@@ -206,7 +241,7 @@ const formatTimestamp = (timestamp: ExecuteResult) => {
   }
 }
 
-const createChatMessage = (displayname: string, color: string, message: string, timestamp: string, tempId?: string) => {
+const createChatMessage = (isNew: boolean, displayname: string, color: string, message: string, timestamp: string, tempId?: string) => {
   const messageElement = document.createElement("li");
   const displaynameElement = document.createElement("span");
   const timestampElement = document.createElement("span");
@@ -243,7 +278,16 @@ const createChatMessage = (displayname: string, color: string, message: string, 
     console.error("Chat elements not found");
     return;
   }
-  chatElement.appendChild(messageElement);
+
+  if (isNew) {
+    chatElement.appendChild(messageElement);
+  } else {
+    chatElement.prepend(messageElement);
+  }
+
+  if (!isNew) {
+    return;
+  }
 
   if (autoScroll) {
     window.scrollTo(0, document.body.scrollHeight);
