@@ -95,7 +95,7 @@ const emotes = new Map([
   ["kok", "/emotes/kok"],
   ["lava", "/emotes/lava"],
   ["lethimcook", "/emotes/lethimcook"],
-  ["letsgoooo", "/emotes/letsgoooo"],
+  ["letsgooo", "/emotes/letsgooo"],
   ["liberec", "/emotes/liberec"],
   ["liemeter", "/emotes/liemeter"],
   ["linux", "/emotes/linux"],
