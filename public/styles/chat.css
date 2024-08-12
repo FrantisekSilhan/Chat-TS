@@ -27,6 +27,19 @@
   color: hsl(var(--text-pending));
 }
 
+.message__link {
+  color: hsl(var(--text));
+}
+
+.message__link:hover {
+  color: hsl(var(--text-hover));
+}
+
+.message__emote img {
+  font-style: italic;
+  max-height: 1lh;
+}
+
 .message__displayname {
   font-weight: 500;
   color: transparent;

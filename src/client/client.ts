@@ -303,7 +303,7 @@ const formatTimestamp = (timestamp: ExecuteResult) => {
   }
 };
 
-function splitStringByRegex(inputString: string, regexPattern: RegExp): string[] {
+const splitStringByRegex = (inputString: string, regexPattern: RegExp): string[] => {
   const result = [];
   let lastIndex = 0;
   let match;
@@ -316,41 +316,9 @@ function splitStringByRegex(inputString: string, regexPattern: RegExp): string[]
 
   result.push(inputString.slice(lastIndex));
   return result;
-}
+};
 
-function render(message: string, textElement: HTMLDivElement) {
-  const regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
-  const divided = splitStringByRegex(message, regex);
-  divided.forEach((text) => {
-    if (text.startsWith("http")) {
-      const link = document.createElement("a");
-      link.href = text;
-      link.target = "_blank";
-      link.textContent = text;
-      link.classList.add("message__link");
-      textElement.insertAdjacentElement("beforeend", link);
-    } else {
-      textElement.insertAdjacentText("beforeend", text);
-    }
-  });
-}
-
-function splitStringByRegex(inputString: string, regexPattern: RegExp): string[] {
-  const result = [];
-  let lastIndex = 0;
-  let match;
-
-  while ((match = regexPattern.exec(inputString)) !== null) {
-    result.push(inputString.slice(lastIndex, match.index));
-    result.push(match[0]);
-    lastIndex = regexPattern.lastIndex;
-  }
-
-  result.push(inputString.slice(lastIndex));
-  return result;
-}
-
-function render(message: string, textElement: HTMLDivElement) {
+const render = (message: string, textElement: HTMLDivElement) => {
   const httpRegex = /https?:\/\/(www\.)?[-a-zA-Z-1-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
   const regex = new RegExp(`${httpRegex.source}|:.{1,9}:`, "gi")
   const divided = splitStringByRegex(message, regex);
@@ -367,7 +335,7 @@ function render(message: string, textElement: HTMLDivElement) {
       const link = emotes.get(text.slice(1, -1));
       if (link) {
         const picture = document.createElement("picture");
-        picture.classList.add("message_emote");
+        picture.classList.add("message__emote");
         const src = document.createElement("source");
         src.srcset = `${link}.avif`
         src.type = "image/avif";
@@ -382,7 +350,7 @@ function render(message: string, textElement: HTMLDivElement) {
     }
     textElement.insertAdjacentText("beforeend", text);
   });
-}
+};
 
 const createChatMessage = (isNew: boolean, displayname: string, color: string, message: string, timestamp: string, tempId?: string) => {
   const messageElement = document.createElement("li");
