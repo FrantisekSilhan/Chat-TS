@@ -318,7 +318,6 @@ var formatTimestamp = function (timestamp) {
         return "".concat(day, "/").concat(month, "/").concat(year, " ").concat(formattedTime);
     }
 };
-
 function splitStringByRegex(inputString, regexPattern) {
     var result = [];
     var lastIndex = 0;
@@ -348,7 +347,6 @@ function render(message, textElement) {
         }
     });
 }
-
 var createChatMessage = function (isNew, displayname, color, message, timestamp, tempId) {
     var messageElement = document.createElement("li");
     var displaynameElement = document.createElement("span");
@@ -385,9 +383,8 @@ var createChatMessage = function (isNew, displayname, color, message, timestamp,
     else {
         chatElement.prepend(messageElement);
     }
-    if (!isNew) {
+    if (!isNew)
         return;
-    }
     if (autoScroll) {
         window.scrollTo(0, document.body.scrollHeight);
     }
