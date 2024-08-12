@@ -45,8 +45,10 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 var _this = this;
 var ws;
+var observer;
 var exit = false;
 var autoScroll = true;
+var firstWSOpen = true;
 var PayloadType;
 (function (PayloadType) {
     PayloadType[PayloadType["SERVER_CLOSE"] = 0] = "SERVER_CLOSE";
@@ -60,6 +62,12 @@ var PayloadType;
     PayloadType[PayloadType["SERVER_SUCCESSFUL_MESSAGE"] = 8] = "SERVER_SUCCESSFUL_MESSAGE";
     PayloadType[PayloadType["SERVER_ERROR_CLOSE"] = 9] = "SERVER_ERROR_CLOSE";
     PayloadType[PayloadType["SERVER_ERROR"] = 10] = "SERVER_ERROR";
+    PayloadType[PayloadType["CLIENT_HISTORY"] = 11] = "CLIENT_HISTORY";
+    PayloadType[PayloadType["SERVER_HISTORY"] = 12] = "SERVER_HISTORY";
+    PayloadType[PayloadType["CLIENT_PRIVATE_HISTORY"] = 13] = "CLIENT_PRIVATE_HISTORY";
+    PayloadType[PayloadType["SERVER_PRIVATE_HISTORY"] = 14] = "SERVER_PRIVATE_HISTORY";
+    PayloadType[PayloadType["CLIENT_BATCH_USER_DATA"] = 15] = "CLIENT_BATCH_USER_DATA";
+    PayloadType[PayloadType["SERVER_BATCH_USER_DATA"] = 16] = "SERVER_BATCH_USER_DATA";
 })(PayloadType || (PayloadType = {}));
 var EPOCH = 1722893503219n;
 var TIMESTAMP_BITS = 46;
@@ -67,6 +75,7 @@ var SEQUENCE_BITS = 12;
 var ID_BITS = 26;
 var USER_DATA_REFRESH = 1000 * 60;
 var MAX_MESSAGE_LENGTH = 2000;
+var MAX_HISTORY_MESSAGES = 69;
 var timestampToDate = function (snowflakeString) {
     var snowflake = BigInt(snowflakeString);
     var timestampMask = (BigInt(1) << BigInt(TIMESTAMP_BITS)) - BigInt(1);
@@ -93,6 +102,12 @@ var connectWebSocket = function () {
     ws.onmessage = function (event) {
         messageHandler(event.data);
     };
+    ws.onopen = function () {
+        if (firstWSOpen) {
+            firstWSOpen = false;
+            setupChat();
+        }
+    };
     ws.onerror = function (err) {
         console.error(err);
     };
@@ -106,38 +121,60 @@ var messageHandler = function (message) {
     var data = JSON.parse(message);
     var type = data[0], payload = data.slice(1);
     switch (type) {
-        case PayloadType.SERVER_CLOSE:
+        case PayloadType.SERVER_CLOSE: {
             exit = true;
             break;
-        case PayloadType.SERVER_ERROR_CLOSE:
+        }
+        case PayloadType.SERVER_ERROR_CLOSE: {
             console.error(payload[0]);
             exit = true;
             break;
-        case PayloadType.SERVER_ERROR:
+        }
+        case PayloadType.SERVER_ERROR: {
             console.error(payload[0]);
             break;
-        case PayloadType.SERVER_USER_DATA:
+        }
+        case PayloadType.SERVER_USER_DATA: {
             localStorageManager.setUserData(payload);
             break;
-        case PayloadType.WELCOME:
+        }
+        case PayloadType.WELCOME: {
             localStorageManager.setWelcomeData(payload);
             break;
-        case PayloadType.SERVER_MESSAGE:
+        }
+        case PayloadType.SERVER_MESSAGE: {
             handleServerMessage(payload);
             break;
-        case PayloadType.SERVER_SUCCESSFUL_MESSAGE:
+        }
+        case PayloadType.SERVER_HISTORY: {
+            handleServerHistory(payload);
+            break;
+        }
+        case PayloadType.SERVER_SUCCESSFUL_MESSAGE: {
             var tempId = payload[0];
             if (pendingSentMessages[tempId]) {
                 pendingSentMessages[tempId].resolve(payload[1]);
                 delete pendingSentMessages[tempId];
             }
             break;
-        default:
+        }
+        case PayloadType.SERVER_BATCH_USER_DATA: {
+            var _a = payload, requestId = _a[0], userData = _a[1];
+            userData.forEach(function (userData) { return localStorageManager.setUserData(userData); });
+            if (pendingBatchUserDataRequests[requestId]) {
+                pendingBatchUserDataRequests[requestId].resolve(userData);
+                delete pendingBatchUserDataRequests[requestId];
+            }
+            break;
+        }
+        default: {
             console.log(data);
             break;
+        }
     }
 };
 var pendingUserDataRequests = {};
+var pendingBatchUserDataRequests = {};
 var pendingSentMessages = {};
 var requestSentMessage = function (tempId) {
     return new Promise(function (resolve, reject) {
@@ -146,8 +183,14 @@ var requestSentMessage = function (tempId) {
 };
 var requestUserData = function (userId) {
     return new Promise(function (resolve, reject) {
-        pendingUserDataRequests[userId.toString()] = { resolve: resolve, reject: reject };
+        pendingUserDataRequests[userId] = { resolve: resolve, reject: reject };
         ws.send(JSON.stringify([PayloadType.CLIENT_USER_DATA, userId]));
+    });
+};
+var requestBatchUserData = function (userIds, requestId) {
+    return new Promise(function (resolve, reject) {
+        pendingBatchUserDataRequests[requestId] = { resolve: resolve, reject: reject };
+        ws.send(JSON.stringify([PayloadType.CLIENT_BATCH_USER_DATA, requestId, userIds]));
     });
 };
 var handleServerMessage = function (payload) { return __awaiter(_this, void 0, void 0, function () {
@@ -171,7 +214,52 @@ var handleServerMessage = function (payload) { return __awaiter(_this, void 0, v
                 return [2 /*return*/];
             case 4:
                 displayname = userData[0], color = userData[1], _ = userData[2];
-                createChatMessage(displayname, color, message, timestamp);
+                createChatMessage(true, displayname, color, message, timestamp);
+                return [2 /*return*/];
+        }
+    });
+}); };
+var handleServerHistory = function (payload) { return __awaiter(_this, void 0, void 0, function () {
+    var userDatas, missingUserIds, requestId, fetchedUserData;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                userDatas = new Map();
+                missingUserIds = new Set();
+                if (payload.length === 0) {
+                    observer.disconnect();
+                    return [2 /*return*/];
+                }
+                payload.forEach(function (_a) {
+                    var userId = _a[0];
+                    if (!localStorageManager.getUserData(userId)) {
+                        missingUserIds.add(userId);
+                    }
+                });
+                if (!(missingUserIds.size > 0)) return [3 /*break*/, 2];
+                requestId = generateRandomTempId();
+                return [4 /*yield*/, requestBatchUserData(Array.from(missingUserIds), requestId)];
+            case 1:
+                fetchedUserData = _a.sent();
+                fetchedUserData.forEach(function (_a) {
+                    var userId = _a[0], userData = _a.slice(1);
+                    return userDatas.set(userId, userData);
+                });
+                _a.label = 2;
+            case 2:
+                payload.forEach(function (_a) {
+                    var userId = _a[0], message = _a[1], timestamp = _a[2];
+                    var userData = userDatas.get(userId) || localStorageManager.getUserData(userId);
+                    if (!userData) {
+                        createChatMessage(false, "User ".concat(userId), "gray", message, timestamp);
+                        return;
+                    }
+                    createChatMessage(false, userData[0], userData[1], message, timestamp);
+                });
+                window.scrollTo(0, window.scrollY + 1);
+                if (document.querySelectorAll(".message").length <= MAX_HISTORY_MESSAGES) {
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
                 return [2 /*return*/];
         }
     });
@@ -183,7 +271,7 @@ var handleClientMessage = function (message, tempId) { return __awaiter(_this, v
             case 0:
                 userData = localStorageManager.getMyData();
                 displayname = userData[0], color = userData[1], _ = userData[2];
-                createChatMessage(displayname, color, message, "", tempId);
+                createChatMessage(true, displayname, color, message, "", tempId);
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 3, , 4]);
@@ -230,6 +318,7 @@ var formatTimestamp = function (timestamp) {
         return "".concat(day, "/").concat(month, "/").concat(year, " ").concat(formattedTime);
     }
 };
+
 function splitStringByRegex(inputString, regexPattern) {
     var result = [];
     var lastIndex = 0;
@@ -259,7 +348,8 @@ function render(message, textElement) {
         }
     });
 }
-var createChatMessage = function (displayname, color, message, timestamp, tempId) {
+
+var createChatMessage = function (isNew, displayname, color, message, timestamp, tempId) {
     var messageElement = document.createElement("li");
     var displaynameElement = document.createElement("span");
     var timestampElement = document.createElement("span");
@@ -289,7 +379,15 @@ var createChatMessage = function (displayname, color, message, timestamp, tempId
         console.error("Chat elements not found");
         return;
     }
-    chatElement.appendChild(messageElement);
+    if (isNew) {
+        chatElement.appendChild(messageElement);
+    }
+    else {
+        chatElement.prepend(messageElement);
+    }
+    if (!isNew) {
+        return;
+    }
     if (autoScroll) {
         window.scrollTo(0, document.body.scrollHeight);
     }
@@ -300,13 +398,12 @@ var createChatMessage = function (displayname, color, message, timestamp, tempId
 var localStorageManager = {
     setUserData: function (payload) {
         var userId = payload[0], userData = payload.slice(1);
-        var stringUserId = userId.toString();
-        if (pendingUserDataRequests[stringUserId]) {
-            pendingUserDataRequests[stringUserId].resolve(userData);
-            delete pendingUserDataRequests[stringUserId];
+        if (pendingUserDataRequests[userId]) {
+            pendingUserDataRequests[userId].resolve(userData);
+            delete pendingUserDataRequests[userId];
         }
         userData[2] = timestampToDate(userData[2])[0].toString();
-        localStorage.setItem(stringUserId, JSON.stringify(userData));
+        localStorage.setItem(userId, JSON.stringify(userData));
     },
     setWelcomeData: function (payload) {
         var userId = payload[0], userData = payload.slice(1);
@@ -314,7 +411,7 @@ var localStorageManager = {
         localStorage.setItem("meId", JSON.stringify([userId]));
     },
     getUserData: function (userId) {
-        var userData = localStorage.getItem(userId.toString());
+        var userData = localStorage.getItem(userId);
         return userData ? JSON.parse(userData) : null;
     },
     getMyData: function () {
@@ -327,12 +424,14 @@ var localStorageManager = {
     }
 };
 var setupChat = function () {
+    var chat = document.getElementById("chat");
+    var observerElement = document.getElementById("observer");
     var chatTextArea = document.getElementById("chat-textarea");
     var chatButton = document.getElementById("chat-button");
     var chatWarning = document.getElementById("chat-warning");
     var body = document.getElementsByTagName("body")[0];
     var lineHeight = parseFloat(getComputedStyle(body).getPropertyValue("--chat-line-height"));
-    if (!chatTextArea || !chatButton || !chatWarning) {
+    if (!chatTextArea || !chatButton || !chatWarning || !chat || !observerElement) {
         console.error("Chat elements not found");
         return;
     }
@@ -418,6 +517,17 @@ var setupChat = function () {
     chatWarning.addEventListener("click", function () {
         window.scrollTo(0, document.body.scrollHeight);
     });
+    observer = new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting) {
+            var firstMessage = chat.querySelector(".message");
+            if (!firstMessage) {
+                ws.send(JSON.stringify([PayloadType.CLIENT_HISTORY, "0"]));
+                return;
+            }
+            var firstMessageTimestamp = firstMessage.dataset.timestamp;
+            ws.send(JSON.stringify([PayloadType.CLIENT_HISTORY, firstMessageTimestamp]));
+        }
+    }, { threshold: 0 });
+    observer.observe(observerElement);
 };
 connectWebSocket();
-setupChat();
