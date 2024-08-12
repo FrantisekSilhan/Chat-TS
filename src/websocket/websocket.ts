@@ -40,6 +40,8 @@ export enum PayloadType {
   SERVER_HISTORY = 12,
   CLIENT_PRIVATE_HISTORY = 13,
   SERVER_PRIVATE_HISTORY = 14,
+  CLIENT_BATCH_USER_DATA = 15,
+  SERVER_BATCH_USER_DATA = 16,
 }
 
 type PayloadTypeParams = {
@@ -58,6 +60,8 @@ type PayloadTypeParams = {
   [PayloadType.SERVER_HISTORY]: [string, string, string][];
   [PayloadType.CLIENT_PRIVATE_HISTORY]: [string, string];
   [PayloadType.SERVER_PRIVATE_HISTORY]: [string, string, string][];
+  [PayloadType.CLIENT_BATCH_USER_DATA]: [string, string[]];
+  [PayloadType.SERVER_BATCH_USER_DATA]: [string, [string, string, string, string][]];
 }
 
 interface ClientMessage {
@@ -145,6 +149,18 @@ interface ServerPrivateHistory {
   senderId: ExecuteResult;
   message: string;
   timestamp: string;
+}
+
+interface ClientBatchUserData {
+  type: PayloadType.CLIENT_BATCH_USER_DATA;
+  requestId: string;
+  userIds: string[];
+}
+
+interface ServerBatchUserData {
+  type: PayloadType.SERVER_BATCH_USER_DATA;
+  requestId: string;
+  users: [string, string, string, string][];
 }
 
 const clients = new Map<ExecuteResult, CustomWebSocket[]>();
@@ -254,6 +270,18 @@ const isClientPayloadOfType = <T extends PayloadType>(type: T, payload: any[]): 
       return payload.length === 1 && isNumberString(payload[0]);
     case PayloadType.CLIENT_HISTORY:
       return payload.length === 1 && isNumberString(payload[0]);
+    case PayloadType.CLIENT_PRIVATE_HISTORY:
+      return payload.length === 2 &&
+        isNumberString(payload[0]) &&
+        isNumberString(payload[1]);
+    case PayloadType.CLIENT_BATCH_USER_DATA:
+      return payload.length === 2 &&
+        typeof payload[0] === "string" &&
+        payload[0].length === shared.config.length.tempId.len &&
+        Array.isArray(payload[1]) &&
+        Array.from(payload[1]).length > 0 &&
+        Array.from(payload[1]).length <= MAX_HISTORY_MESSAGES &&
+        payload[1].every(isNumberString);
     default:
       return false;
   }
@@ -292,6 +320,13 @@ const messageHandler = (ws: CustomWebSocket, message: string): (boolean | IError
     }
     case PayloadType.CLIENT_HISTORY: {
       const result = handleRequestClientHistory(ws, payload as PayloadTypeParams[PayloadType.CLIENT_HISTORY]);
+      if (isIError(result)) {
+        return {...result, additional: type};
+      }
+      break;
+    }
+    case PayloadType.CLIENT_BATCH_USER_DATA: {
+      const result = handleRequestClientBatchUserData(ws, payload as PayloadTypeParams[PayloadType.CLIENT_BATCH_USER_DATA]);
       if (isIError(result)) {
         return {...result, additional: type};
       }
@@ -379,6 +414,26 @@ const handleRequestClientHistory = (ws: CustomWebSocket, payload: PayloadTypePar
 
   if (!sendMessageWS(PayloadType.SERVER_HISTORY, history, ws)) {
     return { message: "Error Sending History" };
+  }
+
+  return true;
+};
+
+const handleRequestClientBatchUserData = (ws: CustomWebSocket, payload: PayloadTypeParams[PayloadType.CLIENT_BATCH_USER_DATA]): (boolean | IError) => {
+  const [ requestId, userIds ] = payload;
+
+  const placeholders = userIds.map(() => "?").join(", ");
+
+  const users = queryAll<IUser>(`SELECT id, displayname, color FROM users WHERE id IN (${placeholders})`, userIds);
+
+  if (!users) {
+    return { message: "Error Fetching Users" };
+  }
+
+  const batchUserData: PayloadTypeParams[PayloadType.SERVER_BATCH_USER_DATA] = [requestId, users.map(({ id, displayname, color }) => [id!.toString(), displayname!, color!, timestamp(id!)])];
+
+  if (!sendMessageWS(PayloadType.SERVER_BATCH_USER_DATA, batchUserData, ws)) {
+    return { message: "Error Sending Batch User Data" };
   }
 
   return true;

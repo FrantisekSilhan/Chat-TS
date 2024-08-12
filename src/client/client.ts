@@ -1,6 +1,8 @@
 let ws: WebSocket;
+let observer: IntersectionObserver;
 let exit = false;
 let autoScroll = true;
+let firstWSOpen = true;
 
 enum PayloadType {
   SERVER_CLOSE = 0,
@@ -18,6 +20,8 @@ enum PayloadType {
   SERVER_HISTORY = 12,
   CLIENT_PRIVATE_HISTORY = 13,
   SERVER_PRIVATE_HISTORY = 14,
+  CLIENT_BATCH_USER_DATA = 15,
+  SERVER_BATCH_USER_DATA = 16,
 }
 
 type ExecuteResult = bigint;
@@ -25,20 +29,22 @@ type ExecuteResult = bigint;
 type PayloadTypeParams = {
   [PayloadType.SERVER_CLOSE]: [];
   [PayloadType.CLIENT_MESSAGE]: [string, string];
-  [PayloadType.SERVER_MESSAGE]: [ExecuteResult, string, string];
-  [PayloadType.CLIENT_PRIVATE_MESSAGE]: [ExecuteResult, string, string];
-  [PayloadType.SERVER_PRIVATE_MESSAGE]: [ExecuteResult, string, string];
-  [PayloadType.CLIENT_USER_DATA]: [ExecuteResult];
-  [PayloadType.SERVER_USER_DATA]: [ExecuteResult, string, string, string];
-  [PayloadType.WELCOME]: [ExecuteResult, string, string];
+  [PayloadType.SERVER_MESSAGE]: [string, string, string];
+  [PayloadType.CLIENT_PRIVATE_MESSAGE]: [string, string, string];
+  [PayloadType.SERVER_PRIVATE_MESSAGE]: [string, string, string];
+  [PayloadType.CLIENT_USER_DATA]: [string];
+  [PayloadType.SERVER_USER_DATA]: [string, string, string, string];
+  [PayloadType.WELCOME]: [string, string, string];
   [PayloadType.SERVER_SUCCESSFUL_MESSAGE]: [string, string];
   [PayloadType.SERVER_ERROR_CLOSE]: [string];
   [PayloadType.SERVER_ERROR]: [string];
   [PayloadType.CLIENT_HISTORY]: [string];
-  [PayloadType.SERVER_HISTORY]: [ExecuteResult, string, string][];
-  [PayloadType.CLIENT_PRIVATE_HISTORY]: [ExecuteResult, string];
-  [PayloadType.SERVER_PRIVATE_HISTORY]: [ExecuteResult, string, string][];
-}
+  [PayloadType.SERVER_HISTORY]: [string, string, string][];
+  [PayloadType.CLIENT_PRIVATE_HISTORY]: [string, string];
+  [PayloadType.SERVER_PRIVATE_HISTORY]: [string, string, string][];
+  [PayloadType.CLIENT_BATCH_USER_DATA]: [string, string[]];
+  [PayloadType.SERVER_BATCH_USER_DATA]: [string, [string, string, string, string][]];
+};
 
 const EPOCH = 1722893503219n;
 const TIMESTAMP_BITS = 46;
@@ -47,6 +53,7 @@ const ID_BITS = 26;
 
 const USER_DATA_REFRESH = 1000 * 60;
 const MAX_MESSAGE_LENGTH = 2000;
+const MAX_HISTORY_MESSAGES = 69;
 
 const timestampToDate = (snowflakeString: string): [ExecuteResult, ExecuteResult, number] => {
   const snowflake = BigInt(snowflakeString);
@@ -71,7 +78,7 @@ const generateRandomTempId = (length = 21) => {
     tempId += randomString();
   }
   return tempId.substring(0, length);
-}
+};
 
 const connectWebSocket = () => {
   const host = window.location.host;
@@ -81,6 +88,13 @@ const connectWebSocket = () => {
   ws.onmessage = (event) => {
     messageHandler(event.data);
   };
+
+  ws.onopen = () => {
+    if (firstWSOpen) {
+      firstWSOpen = false;
+      setupChat();
+    }
+  }
 
   ws.onerror = (err) => {
     console.error(err);
@@ -98,42 +112,61 @@ const messageHandler = (message: string) => {
   const [type, ...payload] = data;
 
   switch (type) {
-    case PayloadType.SERVER_CLOSE:
+    case PayloadType.SERVER_CLOSE: {
       exit = true;
       break;
-    case PayloadType.SERVER_ERROR_CLOSE:
+    }
+    case PayloadType.SERVER_ERROR_CLOSE: {
       console.error(payload[0]);
       exit = true;
       break;
-    case PayloadType.SERVER_ERROR:
+    }
+    case PayloadType.SERVER_ERROR: {
       console.error(payload[0]);
       break;
-    case PayloadType.SERVER_USER_DATA:
+    }
+    case PayloadType.SERVER_USER_DATA: {
       localStorageManager.setUserData(payload as PayloadTypeParams[PayloadType.SERVER_USER_DATA]);
       break;
-    case PayloadType.WELCOME:
+    }
+    case PayloadType.WELCOME: {
       localStorageManager.setWelcomeData(payload as PayloadTypeParams[PayloadType.WELCOME]);
       break;
-    case PayloadType.SERVER_MESSAGE:
+    }
+    case PayloadType.SERVER_MESSAGE: {
       handleServerMessage(payload as PayloadTypeParams[PayloadType.SERVER_MESSAGE]);
       break;
-    case PayloadType.SERVER_HISTORY:
+    }
+    case PayloadType.SERVER_HISTORY: {
       handleServerHistory(payload as PayloadTypeParams[PayloadType.SERVER_HISTORY]);
       break;
-    case PayloadType.SERVER_SUCCESSFUL_MESSAGE:
+    }
+    case PayloadType.SERVER_SUCCESSFUL_MESSAGE: {
       const tempId = payload[0];
       if (pendingSentMessages[tempId]) {
         pendingSentMessages[tempId].resolve(payload[1]);
         delete pendingSentMessages[tempId];
       }
       break;
-    default:
+    }
+    case PayloadType.SERVER_BATCH_USER_DATA: {
+      const [requestId, userData] = payload as PayloadTypeParams[PayloadType.SERVER_BATCH_USER_DATA];
+      userData.forEach((userData) => localStorageManager.setUserData(userData));
+      if (pendingBatchUserDataRequests[requestId]) {
+        pendingBatchUserDataRequests[requestId].resolve(userData);
+        delete pendingBatchUserDataRequests[requestId];
+      }
+      break;
+    }
+    default: {
       console.log(data);
       break;
+    }
   }
 };
 
 const pendingUserDataRequests: { [userId: string]: { resolve: (data: any) => void, reject: (reason?: any) => void } } = {};
+const pendingBatchUserDataRequests: { [requestId: string]: { resolve: (data: any) => void, reject: (reason?: any) => void } } = {};
 const pendingSentMessages: { [tempId: string]: { resolve: (data: any) => void, reject: (reason?: any) => void } } = {};
 
 const requestSentMessage = (tempId: string): Promise<string> => {
@@ -142,10 +175,17 @@ const requestSentMessage = (tempId: string): Promise<string> => {
   });
 };
 
-const requestUserData = (userId: ExecuteResult) => {
+const requestUserData = (userId: string) => {
   return new Promise((resolve, reject) => {
-    pendingUserDataRequests[userId.toString()] = { resolve, reject };
+    pendingUserDataRequests[userId] = { resolve, reject };
     ws.send(JSON.stringify([PayloadType.CLIENT_USER_DATA, userId]));
+  });
+};
+
+const requestBatchUserData = (userIds: string[], requestId: string): Promise<[string, string, string, string][]> => {
+  return new Promise((resolve, reject) => {
+    pendingBatchUserDataRequests[requestId] = { resolve, reject };
+    ws.send(JSON.stringify([PayloadType.CLIENT_BATCH_USER_DATA, requestId, userIds]));
   });
 };
 
@@ -167,28 +207,42 @@ const handleServerMessage = async (payload: PayloadTypeParams[PayloadType.SERVER
   createChatMessage(true, displayname, color, message, timestamp);
 };
 
-const handleServerHistory = (payload: PayloadTypeParams[PayloadType.SERVER_HISTORY]) => {
-  const userDatas = new Map<ExecuteResult, [string, string, string]>();
-  
-  payload.forEach(async ([userId, message, timestamp]) => {
-    let userData = userDatas.get(userId);
+const handleServerHistory = async (payload: PayloadTypeParams[PayloadType.SERVER_HISTORY]) => {
+  const userDatas = new Map<string, [string, string, string]>();
+  const missingUserIds = new Set<string>();
+
+  if (payload.length === 0) {
+    observer.disconnect();
+    return;
+  }
+
+  payload.forEach(([userId]) => {
+    if (!localStorageManager.getUserData(userId)) {
+      missingUserIds.add(userId);
+    }
+  });
+
+  if (missingUserIds.size > 0) {
+    const requestId = generateRandomTempId();
+    const fetchedUserData = await requestBatchUserData(Array.from(missingUserIds), requestId);
+    fetchedUserData.forEach(([userId, ...userData]) => userDatas.set(userId, userData));
+  }
+
+  payload.forEach(([userId, message, timestamp]) => {
+    let userData = userDatas.get(userId) || localStorageManager.getUserData(userId);
 
     if (!userData) {
-      let localStorageUserData = localStorageManager.getUserData(userId);
-      if (!localStorageUserData) {
-        try {
-          localStorageUserData = await requestUserData(userId);
-        } catch (err) {
-          console.error(err);
-          return;
-        }
-      }
-      userData = localStorageUserData;
-      userDatas.set(userId, localStorageUserData);
+      createChatMessage(false, `User ${userId}`, "gray", message, timestamp);
+      return;
     }
 
-    createChatMessage(false, userData![0], userData![1], message, timestamp);
+    createChatMessage(false, userData[0], userData[1], message, timestamp);
   });
+
+  window.scrollTo(0, window.scrollY + 1);
+  if (document.querySelectorAll(".message").length <= MAX_HISTORY_MESSAGES) {
+    window.scrollTo(0, document.body.scrollHeight);
+  }
 };
 
 const handleClientMessage = async (message: string, tempId: string) => {
@@ -213,7 +267,7 @@ const handleClientMessage = async (message: string, tempId: string) => {
   } catch (err) {
     console.error(err);
   }
-}
+};
 
 const formatTimestamp = (timestamp: ExecuteResult) => {
   const date = new Date(Number(timestamp));
@@ -239,7 +293,7 @@ const formatTimestamp = (timestamp: ExecuteResult) => {
     const year = localDate.getFullYear();
     return `${day}/${month}/${year} ${formattedTime}`;
   }
-}
+};
 
 const createChatMessage = (isNew: boolean, displayname: string, color: string, message: string, timestamp: string, tempId?: string) => {
   const messageElement = document.createElement("li");
@@ -299,15 +353,14 @@ const createChatMessage = (isNew: boolean, displayname: string, color: string, m
 const localStorageManager = {
   setUserData: (payload: PayloadTypeParams[PayloadType.SERVER_USER_DATA]) => {
     const [userId, ...userData] = payload;
-    const stringUserId = userId.toString();
 
-    if (pendingUserDataRequests[stringUserId]) {
-      pendingUserDataRequests[stringUserId].resolve(userData);
-      delete pendingUserDataRequests[stringUserId];
+    if (pendingUserDataRequests[userId]) {
+      pendingUserDataRequests[userId].resolve(userData);
+      delete pendingUserDataRequests[userId];
     }
 
     userData[2] = timestampToDate(userData[2])[0].toString();
-    localStorage.setItem(stringUserId, JSON.stringify(userData));
+    localStorage.setItem(userId, JSON.stringify(userData));
   },
   setWelcomeData: (payload: PayloadTypeParams[PayloadType.WELCOME]) => {
     const [userId, ...userData] = payload;
@@ -315,8 +368,8 @@ const localStorageManager = {
     localStorage.setItem("me", JSON.stringify([...userData, Date.now().toString()]));
     localStorage.setItem("meId", JSON.stringify([userId]));
   },
-  getUserData: (userId: ExecuteResult) => {
-    const userData = localStorage.getItem(userId.toString());
+  getUserData: (userId: string) => {
+    const userData = localStorage.getItem(userId);
     return userData ? JSON.parse(userData) : null;
   },
   getMyData: () => {
@@ -330,13 +383,15 @@ const localStorageManager = {
 };
 
 const setupChat = () => {
+  const chat = document.getElementById("chat");
+  const observerElement = document.getElementById("observer");
   const chatTextArea = document.getElementById("chat-textarea") as HTMLTextAreaElement;
   const chatButton = document.getElementById("chat-button");
   const chatWarning = document.getElementById("chat-warning");
   const body = document.getElementsByTagName("body")[0];
   const lineHeight = parseFloat(getComputedStyle(body).getPropertyValue("--chat-line-height"));
 
-  if (!chatTextArea || !chatButton || !chatWarning) {
+  if (!chatTextArea || !chatButton || !chatWarning || !chat || !observerElement) {
     console.error("Chat elements not found");
     return;
   }
@@ -441,7 +496,21 @@ const setupChat = () => {
   chatWarning.addEventListener("click", () => {
     window.scrollTo(0, document.body.scrollHeight);
   });
-}
+
+  observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      const firstMessage = chat.querySelector(".message") as HTMLElement;
+      if (!firstMessage) {
+        ws.send(JSON.stringify([PayloadType.CLIENT_HISTORY, "0"]));
+        return;
+      }
+
+      const firstMessageTimestamp = firstMessage.dataset.timestamp;
+      ws.send(JSON.stringify([PayloadType.CLIENT_HISTORY, firstMessageTimestamp]));
+    }
+  }, { threshold: 0 });
+
+  observer.observe(observerElement);
+};
 
 connectWebSocket();
-setupChat();
