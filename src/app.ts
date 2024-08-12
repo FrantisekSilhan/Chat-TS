@@ -145,5 +145,5 @@ app.use((err: any, _: Request, res: Response, __: NextFunction) => {
 
 // start
 server.listen(shared.config.port, () => {
-  logger.info(`Server is running on ${process.env.NODE_ENV === "producation" ? "http" : "https"}://guwa.localhost:${shared.config.port}`);
+  logger.info(`Server is running on ${process.env.NODE_ENV === "production" ? "http" : "https"}://guwa.localhost:${shared.config.port}`);
 });
