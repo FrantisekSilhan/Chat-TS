@@ -60,6 +60,8 @@ app.set("views", shared.paths.views);
 app.set("layout", path.join(shared.paths.layouts, "main"));
 app.set("trust proxy", 1);
 
+express.static.mime.define({"image/avif": ["avif"]});
+
 // middlewares
 app.use(compression());
 app.use(shouldMinify);

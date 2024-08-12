@@ -46,6 +46,14 @@ type PayloadTypeParams = {
   [PayloadType.SERVER_BATCH_USER_DATA]: [string, [string, string, string, string][]];
 };
 
+const emotes = new Map([
+  ["buh", "/emotes/buh"],
+  ["GAGAGA", "/emotes/gagaga"],
+  ["NOOOO", "/emotes/noooo"],
+  ["HUH", "/emotes/huh"],
+  ["xdd", "/emotes/xdd"]
+]);
+
 const EPOCH = 1722893503219n;
 const TIMESTAMP_BITS = 46;
 const SEQUENCE_BITS = 12;
@@ -324,6 +332,55 @@ function render(message: string, textElement: HTMLDivElement) {
     } else {
       textElement.insertAdjacentText("beforeend", text);
     }
+  });
+}
+
+function splitStringByRegex(inputString: string, regexPattern: RegExp): string[] {
+  const result = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regexPattern.exec(inputString)) !== null) {
+    result.push(inputString.slice(lastIndex, match.index));
+    result.push(match[0]);
+    lastIndex = regexPattern.lastIndex;
+  }
+
+  result.push(inputString.slice(lastIndex));
+  return result;
+}
+
+function render(message: string, textElement: HTMLDivElement) {
+  const httpRegex = /https?:\/\/(www\.)?[-a-zA-Z-1-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
+  const regex = new RegExp(`${httpRegex.source}|:.{1,9}:`, "gi")
+  const divided = splitStringByRegex(message, regex);
+  divided.forEach((text) => {
+    if (httpRegex.test(text)) {
+      const link = document.createElement("a");
+      link.href = text;
+      link.target = "_blank";
+      link.textContent = text;
+      link.classList.add("message__link");
+      textElement.insertAdjacentElement("beforeend", link);
+      return;
+    } else if (text.startsWith(":") && text.endsWith(":")) {
+      const link = emotes.get(text.slice(1, -1));
+      if (link) {
+        const picture = document.createElement("picture");
+        picture.classList.add("message_emote");
+        const src = document.createElement("source");
+        src.srcset = `${link}.avif`
+        src.type = "image/avif";
+        const img = document.createElement("img");
+        img.src = `${link}.webp`;
+        img.alt = text;
+        picture.appendChild(src);
+        picture.appendChild(img);
+        textElement.insertAdjacentElement("beforeend", picture);
+        return;
+      }
+    }
+    textElement.insertAdjacentText("beforeend", text);
   });
 }
 
