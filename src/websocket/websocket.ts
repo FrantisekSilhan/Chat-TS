@@ -4,10 +4,10 @@ import shared from "../shared";
 import logger from "../utils/logger";
 
 import type { Server } from "http";
-import type { Request } from "express";
+import { json, type Request } from "express";
 
-import type { ExecuteResult, IUser } from "../utils/database";
-import { querySingle, executeInsertSafe } from "../utils/database";
+import type { ExecuteResult, IUser, IMessage } from "../utils/database";
+import { querySingle, executeInsertSafe, queryAll } from "../utils/database";
 import type { IError } from "../app";
 import { isIError } from "../app";
 import { timestamp } from "../utils/timestamp";
@@ -22,6 +22,7 @@ export interface CustomWebSocket extends WebSocket {
 }
 
 const MAX_CONNECTIONS_PER_USER = 3;
+const MAX_HISTORY_MESSAGES = 69;
 
 export enum PayloadType {
   SERVER_CLOSE = 0,
@@ -35,25 +36,38 @@ export enum PayloadType {
   SERVER_SUCCESSFUL_MESSAGE = 8,
   SERVER_ERROR_CLOSE = 9,
   SERVER_ERROR = 10,
+  CLIENT_HISTORY = 11,
+  SERVER_HISTORY = 12,
+  CLIENT_PRIVATE_HISTORY = 13,
+  SERVER_PRIVATE_HISTORY = 14,
+  CLIENT_BATCH_USER_DATA = 15,
+  SERVER_BATCH_USER_DATA = 16,
 }
 
 type PayloadTypeParams = {
   [PayloadType.SERVER_CLOSE]: [];
   [PayloadType.CLIENT_MESSAGE]: [string, string];
-  [PayloadType.SERVER_MESSAGE]: [ExecuteResult, string, string];
-  [PayloadType.CLIENT_PRIVATE_MESSAGE]: [ExecuteResult, string, string];
-  [PayloadType.SERVER_PRIVATE_MESSAGE]: [ExecuteResult, string, string];
-  [PayloadType.CLIENT_USER_DATA]: [ExecuteResult];
-  [PayloadType.SERVER_USER_DATA]: [ExecuteResult, string, string, string];
-  [PayloadType.WELCOME]: [ExecuteResult, string, string];
+  [PayloadType.SERVER_MESSAGE]: [string, string, string];
+  [PayloadType.CLIENT_PRIVATE_MESSAGE]: [string, string, string];
+  [PayloadType.SERVER_PRIVATE_MESSAGE]: [string, string, string];
+  [PayloadType.CLIENT_USER_DATA]: [string];
+  [PayloadType.SERVER_USER_DATA]: [string, string, string, string];
+  [PayloadType.WELCOME]: [string, string, string];
   [PayloadType.SERVER_SUCCESSFUL_MESSAGE]: [string, string];
   [PayloadType.SERVER_ERROR_CLOSE]: [string];
   [PayloadType.SERVER_ERROR]: [string];
+  [PayloadType.CLIENT_HISTORY]: [string];
+  [PayloadType.SERVER_HISTORY]: [string, string, string][];
+  [PayloadType.CLIENT_PRIVATE_HISTORY]: [string, string];
+  [PayloadType.SERVER_PRIVATE_HISTORY]: [string, string, string][];
+  [PayloadType.CLIENT_BATCH_USER_DATA]: [string, string[]];
+  [PayloadType.SERVER_BATCH_USER_DATA]: [string, [string, string, string, string][]];
 }
 
 interface ClientMessage {
   type: PayloadType.CLIENT_MESSAGE;
   message: string;
+  tempId: string;
 }
 
 interface ServerMessage {
@@ -94,6 +108,59 @@ interface Welcome {
   userId: ExecuteResult;
   displayname: string;
   color: string;
+}
+
+interface ServerSuccessfulMessage {
+  type: PayloadType.SERVER_SUCCESSFUL_MESSAGE;
+  tempId: string;
+  timestamp: string;
+}
+
+interface ServerErrorClose {
+  type: PayloadType.SERVER_ERROR_CLOSE;
+  message: string;
+}
+
+interface ServerError {
+  type: PayloadType.SERVER_ERROR;
+  message: string;
+}
+
+interface ClientHistory {
+  type: PayloadType.CLIENT_HISTORY;
+  lastMessageId: string;
+}
+
+interface ServerHistory {
+  type: PayloadType.SERVER_HISTORY;
+  senderId: ExecuteResult;
+  message: string;
+  timestamp: string;
+}
+
+interface ClientPrivateHistory {
+  type: PayloadType.CLIENT_PRIVATE_HISTORY;
+  userId: ExecuteResult;
+  lastMessageId: string;
+}
+
+interface ServerPrivateHistory {
+  type: PayloadType.SERVER_PRIVATE_HISTORY;
+  senderId: ExecuteResult;
+  message: string;
+  timestamp: string;
+}
+
+interface ClientBatchUserData {
+  type: PayloadType.CLIENT_BATCH_USER_DATA;
+  requestId: string;
+  userIds: string[];
+}
+
+interface ServerBatchUserData {
+  type: PayloadType.SERVER_BATCH_USER_DATA;
+  requestId: string;
+  users: [string, string, string, string][];
 }
 
 const clients = new Map<ExecuteResult, CustomWebSocket[]>();
@@ -143,7 +210,7 @@ export const initializeWebSocket = (server: Server, sessionMiddleware: any) => {
       clients.set(userId, [ws]);
     }
 
-    sendMessageWS(PayloadType.WELCOME, [userId, user.displayname!, user.color!], ws);
+    sendMessageWS(PayloadType.WELCOME, [userId.toString(), user.displayname!, user.color!], ws);
 
     ws.on("message", (message: string) => {
       const result = messageHandler(ws, message);
@@ -182,7 +249,7 @@ export const initializeWebSocket = (server: Server, sessionMiddleware: any) => {
 };
 
 const isClientPayloadOfType = <T extends PayloadType>(type: T, payload: any[]): payload is PayloadTypeParams[T] => {
-  const isBigInt = (value: any): value is bigint => (typeof value === "bigint" || typeof value === "number");
+  const isNumberString = (value: string): boolean => !isNaN(Number(value));
   switch (type) {
     case PayloadType.CLIENT_MESSAGE:
       return payload.length === 2 &&
@@ -193,14 +260,28 @@ const isClientPayloadOfType = <T extends PayloadType>(type: T, payload: any[]): 
       payload[1].length === shared.config.length.tempId.len;
     case PayloadType.CLIENT_PRIVATE_MESSAGE:
       return payload.length === 3 &&
-        isBigInt(payload[0]) &&
+        isNumberString(payload[0]) &&
         typeof payload[1] === "string" &&
         payload[1].length >= shared.config.length.message.min &&
         payload[1].length <= shared.config.length.message.max &&
         typeof payload[2] === "string" &&
         payload[2].length === shared.config.length.tempId.len;
     case PayloadType.CLIENT_USER_DATA:
-      return payload.length === 1 && isBigInt(payload[0]);
+      return payload.length === 1 && isNumberString(payload[0]);
+    case PayloadType.CLIENT_HISTORY:
+      return payload.length === 1 && isNumberString(payload[0]);
+    case PayloadType.CLIENT_PRIVATE_HISTORY:
+      return payload.length === 2 &&
+        isNumberString(payload[0]) &&
+        isNumberString(payload[1]);
+    case PayloadType.CLIENT_BATCH_USER_DATA:
+      return payload.length === 2 &&
+        typeof payload[0] === "string" &&
+        payload[0].length === shared.config.length.tempId.len &&
+        Array.isArray(payload[1]) &&
+        Array.from(payload[1]).length > 0 &&
+        Array.from(payload[1]).length <= MAX_HISTORY_MESSAGES &&
+        payload[1].every(isNumberString);
     default:
       return false;
   }
@@ -237,6 +318,20 @@ const messageHandler = (ws: CustomWebSocket, message: string): (boolean | IError
       }
       break;
     }
+    case PayloadType.CLIENT_HISTORY: {
+      const result = handleRequestClientHistory(ws, payload as PayloadTypeParams[PayloadType.CLIENT_HISTORY]);
+      if (isIError(result)) {
+        return {...result, additional: type};
+      }
+      break;
+    }
+    case PayloadType.CLIENT_BATCH_USER_DATA: {
+      const result = handleRequestClientBatchUserData(ws, payload as PayloadTypeParams[PayloadType.CLIENT_BATCH_USER_DATA]);
+      if (isIError(result)) {
+        return {...result, additional: type};
+      }
+      break;
+    }
     default: {
       return { message: "Invalid Payload" };
     }
@@ -255,7 +350,7 @@ const handleRequestClientMessage = (ws: CustomWebSocket, payload: PayloadTypePar
     return { message: "Error Sending Message" };
   }
 
-  sendMessage(PayloadType.SERVER_MESSAGE, [userId, message, snowflake], undefined, userId);
+  sendMessage(PayloadType.SERVER_MESSAGE, [userId.toString(), message, snowflake], undefined, userId);
 
   if (!sendMessageWS(PayloadType.SERVER_SUCCESSFUL_MESSAGE, [tempId, snowflake], ws)) {
     return { message: "Error Replying To Sender" };
@@ -280,7 +375,7 @@ const handleRequestClientPrivateMessage = (ws: CustomWebSocket, payload: Payload
     return { message: "Error Sending Message" };
   }
 
-  sendMessage(PayloadType.SERVER_PRIVATE_MESSAGE, [userId, message, snowflake], receiverId)
+  sendMessage(PayloadType.SERVER_PRIVATE_MESSAGE, [userId.toString(), message, snowflake], BigInt(receiverId))
 
   if (!sendMessageWS(PayloadType.SERVER_SUCCESSFUL_MESSAGE, [tempId, snowflake], ws)) {
     return { message: "Error Replying To Sender" };
@@ -301,6 +396,44 @@ const handleRequestClientUserData = (ws: CustomWebSocket, payload: PayloadTypePa
 
   if (!sendMessageWS(PayloadType.SERVER_USER_DATA, [payloadUserId, user.displayname!, user.color!, timestamp(userId)], ws)) {
     return { message: "Error Sending User Data" };
+  }
+
+  return true;
+};
+
+const handleRequestClientHistory = (ws: CustomWebSocket, payload: PayloadTypeParams[PayloadType.CLIENT_HISTORY]): (boolean | IError) => {
+  const [ lastMessageId ] = payload;
+
+  const messages = BigInt(lastMessageId) !== 0n ? queryAll<IMessage>("SELECT content, sender, timestamp FROM messages WHERE timestamp < ? ORDER BY id DESC LIMIT ?", [lastMessageId, MAX_HISTORY_MESSAGES]) : queryAll<IMessage>("SELECT content, sender, timestamp FROM messages ORDER BY id DESC LIMIT ?", [MAX_HISTORY_MESSAGES]);
+
+  if (!messages) {
+    return { message: "Error Fetching History" };
+  }
+
+  const history: PayloadTypeParams[PayloadType.SERVER_HISTORY] = messages.map(({ content, sender, timestamp }) => [sender!.toString(), content!, timestamp!]);
+
+  if (!sendMessageWS(PayloadType.SERVER_HISTORY, history, ws)) {
+    return { message: "Error Sending History" };
+  }
+
+  return true;
+};
+
+const handleRequestClientBatchUserData = (ws: CustomWebSocket, payload: PayloadTypeParams[PayloadType.CLIENT_BATCH_USER_DATA]): (boolean | IError) => {
+  const [ requestId, userIds ] = payload;
+
+  const placeholders = userIds.map(() => "?").join(", ");
+
+  const users = queryAll<IUser>(`SELECT id, displayname, color FROM users WHERE id IN (${placeholders})`, userIds);
+
+  if (!users) {
+    return { message: "Error Fetching Users" };
+  }
+
+  const batchUserData: PayloadTypeParams[PayloadType.SERVER_BATCH_USER_DATA] = [requestId, users.map(({ id, displayname, color }) => [id!.toString(), displayname!, color!, timestamp(id!)])];
+
+  if (!sendMessageWS(PayloadType.SERVER_BATCH_USER_DATA, batchUserData, ws)) {
+    return { message: "Error Sending Batch User Data" };
   }
 
   return true;
