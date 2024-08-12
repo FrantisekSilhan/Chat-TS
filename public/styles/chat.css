@@ -17,6 +17,7 @@
 
 .message > div {
   word-break: break-all;
+  display: flex;
 }
 
 .message > span {
