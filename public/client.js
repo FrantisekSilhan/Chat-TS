@@ -70,11 +70,124 @@ var PayloadType;
     PayloadType[PayloadType["SERVER_BATCH_USER_DATA"] = 16] = "SERVER_BATCH_USER_DATA";
 })(PayloadType || (PayloadType = {}));
 var emotes = new Map([
+    ["1984", "/emotes/1984"],
+    ["adhd", "/emotes/adhd"],
+    ["alert", "/emotes/alert"],
+    ["america", "/emotes/america"],
+    ["annoyed", "/emotes/annoyed"],
+    ["ant", "/emotes/ant"],
+    ["aware", "/emotes/aware"],
+    ["awoken", "/emotes/awoken"],
+    ["baited", "/emotes/baited"],
+    ["banger", "/emotes/banger"],
+    ["bedge", "/emotes/bedge"],
+    ["beercat", "/emotes/beercat"],
+    ["bla", "/emotes/bla"],
+    ["blehhhh", "/emotes/blehhhh"],
+    ["blunder", "/emotes/blunder"],
+    ["boo", "/emotes/boo"],
+    ["booba", "/emotes/booba"],
     ["buh", "/emotes/buh"],
-    ["GAGAGA", "/emotes/gagaga"],
-    ["NOOOO", "/emotes/noooo"],
-    ["HUH", "/emotes/huh"],
-    ["xdd", "/emotes/xdd"]
+    ["bussin", "/emotes/bussin"],
+    ["catsittingverycomfortable", "/emotes/catsittingverycomfortable"],
+    ["catsittingverycomfortablearoundacampfirewithitsfriends", "/emotes/catsittingverycomfortablearoundacampfirewithitsfriends"],
+    ["catsleep", "/emotes/catsleep"],
+    ["cinkacka", "/emotes/cinkacka"],
+    ["classic", "/emotes/classic"],
+    ["clueless", "/emotes/clueless"],
+    ["cooking", "/emotes/cooking"],
+    ["copium", "/emotes/copium"],
+    ["doyoufeeltheweightofyoursinsdoesithurtdoesgodsjudgementfillyouwithguilttormenttheyrecomingtheyrecomi", "/emotes/doyoufeeltheweightofyoursinsdoesithurtdoesgodsjudgementfillyouwithguilttormenttheyrecomingtheyrecomi"],
+    ["drak", "/emotes/drak"],
+    [":3", "/emotes/dvojtecka3"],
+    ["emo", "/emotes/emo"],
+    ["erm", "/emotes/erm"],
+    ["flashbacks", "/emotes/flashbacks"],
+    ["gagaga", "/emotes/gagaga"],
+    ["gamba", "/emotes/gamba"],
+    ["gg", "/emotes/gg"],
+    ["goodbye", "/emotes/goodbye"],
+    ["huh", "/emotes/huh"],
+    ["chillin", "/emotes/chillin"],
+    ["iq", "/emotes/iq"],
+    ["jducurat", "/emotes/jducurat"],
+    ["joever", "/emotes/joever"],
+    ["jojo", "/emotes/jojo"],
+    ["kekw", "/emotes/kekw"],
+    ["kelimek", "/emotes/kelimek"],
+    ["kok", "/emotes/kok"],
+    ["lava", "/emotes/lava"],
+    ["lethimcook", "/emotes/lethimcook"],
+    ["letsgoooo", "/emotes/letsgoooo"],
+    ["liberec", "/emotes/liberec"],
+    ["liemeter", "/emotes/liemeter"],
+    ["linux", "/emotes/linux"],
+    ["ll", "/emotes/ll"],
+    ["lol", "/emotes/lol"],
+    ["majklpiska", "/emotes/majklpiska"],
+    ["meowdy", "/emotes/meowdy"],
+    ["mhm", "/emotes/mhm"],
+    ["mooah", "/emotes/mooah"],
+    ["naaaah", "/emotes/naaaah"],
+    ["nerding", "/emotes/nerding"],
+    ["neuronactivation", "/emotes/neuronactivation"],
+    ["noooo", "/emotes/noooo"],
+    ["noshot", "/emotes/noshot"],
+    ["nuhuh", "/emotes/nuhuh"],
+    ["o7", "/emotes/o7"],
+    ["oh", "/emotes/oh"],
+    ["ohcry", "/emotes/ohcry"],
+    ["ok", "/emotes/ok"],
+    ["okayge", "/emotes/okayge"],
+    ["??", "/emotes/otaznik"],
+    ["papa", "/emotes/papa"],
+    ["pedro", "/emotes/pedro"],
+    ["peepoczech", "/emotes/peepoczech"],
+    ["peeposhy", "/emotes/peeposhy"],
+    ["peped", "/emotes/peped"],
+    ["pepege", "/emotes/pepege"],
+    ["pepepains", "/emotes/pepepains"],
+    ["pepes", "/emotes/pepes"],
+    ["phonge", "/emotes/phonge"],
+    ["plead", "/emotes/plead"],
+    ["pog", "/emotes/pog"],
+    ["popipopipipopipo", "/emotes/popipopipipopipo"],
+    ["probuzen", "/emotes/probuzen"],
+    ["punch", "/emotes/punch"],
+    ["ragey", "/emotes/ragey"],
+    ["rar", "/emotes/rar"],
+    ["ratio", "/emotes/ratio"],
+    ["sadcat", "/emotes/sadcat"],
+    ["sadge", "/emotes/sadge"],
+    ["shywokege", "/emotes/shywokege"],
+    ["schizo", "/emotes/schizo"],
+    ["sigma", "/emotes/sigma"],
+    ["sisyphus", "/emotes/sisyphus"],
+    ["skibidi", "/emotes/skibidi"],
+    ["skip", "/emotes/skip"],
+    ["slovak", "/emotes/slovak"],
+    ["sniffa", "/emotes/sniffa"],
+    ["suffering", "/emotes/suffering"],
+    ["sus", "/emotes/sus"],
+    ["susdog", "/emotes/susdog"],
+    ["taktojeval", "/emotes/taktojeval"],
+    ["test", "/emotes/test"],
+    ["tf", "/emotes/tf"],
+    ["theindustrialrevolutionanditsconsequenceshavebeenadisasterforthehumanrace", "/emotes/theindustrialrevolutionanditsconsequenceshavebeenadisasterforthehumanrace"],
+    ["thischat", "/emotes/thischat"],
+    ["titanholo", "/emotes/titanholo"],
+    ["transge", "/emotes/transge"],
+    ["trolley", "/emotes/trolley"],
+    ["uuh", "/emotes/uuh"],
+    ["vibe", "/emotes/vibe"],
+    ["wankge", "/emotes/wankge"],
+    ["wholethimcook", "/emotes/wholethimcook"],
+    ["wokeg", "/emotes/wokeg"],
+    ["wokege", "/emotes/wokege"],
+    ["ww", "/emotes/ww"],
+    ["xdd", "/emotes/xdd"],
+    ["xddwokege", "/emotes/xddwokege"],
+    ["zivot", "/emotes/zivot"],
 ]);
 var EPOCH = 1722893503219n;
 var TIMESTAMP_BITS = 46;
@@ -271,14 +384,22 @@ var handleServerHistory = function (payload) { return __awaiter(_this, void 0, v
         }
     });
 }); };
+var formatOutgoingMessage = function (message) {
+    emotes.forEach(function (value, key, map) {
+        message = message.replaceAll(new RegExp("\\W?\\b\\s?".concat(key, "\\s?\\b\\W?"), "gi"), " :".concat(key, ": "));
+    });
+    return message.trim();
+};
 var handleClientMessage = function (message, tempId) { return __awaiter(_this, void 0, void 0, function () {
-    var userData, displayname, color, _, messageId, messageElement, err_2;
+    var userData, displayname, color, _, formattedMessage, messageId, messageElement, err_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 userData = localStorageManager.getMyData();
                 displayname = userData[0], color = userData[1], _ = userData[2];
-                createChatMessage(true, displayname, color, message, "", tempId);
+                formattedMessage = formatOutgoingMessage(message);
+                createChatMessage(true, displayname, color, formattedMessage, "", tempId);
+                ws.send(JSON.stringify([PayloadType.CLIENT_MESSAGE, formattedMessage, tempId]));
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 3, , 4]);
@@ -339,7 +460,7 @@ var splitStringByRegex = function (inputString, regexPattern) {
 };
 var render = function (message, textElement) {
     var httpRegex = /https?:\/\/(www\.)?[-a-zA-Z-1-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
-    var regex = new RegExp("".concat(httpRegex.source, "|:.{1,9}:"), "gi");
+    var regex = new RegExp("".concat(httpRegex.source, "|:[a-zA-Z0-9]{1,9}:"), "gi");
     var divided = splitStringByRegex(message, regex);
     divided.forEach(function (text) {
         if (httpRegex.test(text)) {
@@ -524,7 +645,6 @@ var setupChat = function () {
         if (chatTextArea.value && chatTextArea.value.length <= MAX_MESSAGE_LENGTH) {
             var tempId = generateRandomTempId();
             handleClientMessage(chatTextArea.value, tempId);
-            ws.send(JSON.stringify([PayloadType.CLIENT_MESSAGE, chatTextArea.value, tempId]));
             chatTextArea.value = "";
             chatTextArea.dispatchEvent(new Event('input', { bubbles: true }));
         }
