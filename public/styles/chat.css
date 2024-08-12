@@ -10,14 +10,13 @@
 
 .message {
   text-shadow: 0 0 0px hsl(var(--color-black));
-  word-wrap: break-word;
+  overflow-wrap: break-word;
   white-space: pre-wrap;
   display: flex;
 }
 
 .message > div {
   word-break: break-all;
-  display: flex;
 }
 
 .message > span {
@@ -39,6 +38,10 @@
 .message__emote img {
   font-style: italic;
   max-height: 1lh;
+}
+
+.message__emote {
+  display: inline-block;
 }
 
 .message__displayname {
