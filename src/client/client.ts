@@ -366,12 +366,22 @@ const handleServerHistory = async (payload: PayloadTypeParams[PayloadType.SERVER
   }
 };
 
+const formatOutgoingMessage = (message: string): string => {
+  emotes.forEach((value, key, map) => {
+    message = message.replaceAll(new RegExp(`\\W?\\b\\s?${key}\\s?\\b\\W?`, "gi"), ` :${key}: `);
+  });
+  return message.trim();
+}
+
 const handleClientMessage = async (message: string, tempId: string) => {
   let userData = localStorageManager.getMyData();
 
   const [displayname, color, _] = userData;
 
-  createChatMessage(true, displayname, color, message, "", tempId);
+  const formattedMessage = formatOutgoingMessage(message);
+
+  createChatMessage(true, displayname, color, formattedMessage, "", tempId);
+  ws.send(JSON.stringify([PayloadType.CLIENT_MESSAGE, formattedMessage, tempId]));
 
   try {
     const messageId = await requestSentMessage(tempId);
@@ -433,7 +443,7 @@ const splitStringByRegex = (inputString: string, regexPattern: RegExp): string[]
 
 const render = (message: string, textElement: HTMLDivElement) => {
   const httpRegex = /https?:\/\/(www\.)?[-a-zA-Z-1-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
-  const regex = new RegExp(`${httpRegex.source}|:.{1,9}:`, "gi")
+  const regex = new RegExp(`${httpRegex.source}|:[a-zA-Z0-9]{1,9}:`, "gi")
   const divided = splitStringByRegex(message, regex);
   divided.forEach((text) => {
     if (httpRegex.test(text)) {
@@ -509,7 +519,7 @@ const createChatMessage = (isNew: boolean, displayname: string, color: string, m
   } else {
     chatElement.prepend(messageElement);
   }
-  
+
   if (!isNew) return;
   if (autoScroll) {
     window.scrollTo(0, document.body.scrollHeight);
@@ -648,7 +658,6 @@ const setupChat = () => {
     if (chatTextArea.value && chatTextArea.value.length <= MAX_MESSAGE_LENGTH) {
       const tempId = generateRandomTempId();
       handleClientMessage(chatTextArea.value, tempId);
-      ws.send(JSON.stringify([PayloadType.CLIENT_MESSAGE, chatTextArea.value, tempId]));
       chatTextArea.value = "";
       chatTextArea.dispatchEvent(new Event('input', { bubbles: true }));
     }
