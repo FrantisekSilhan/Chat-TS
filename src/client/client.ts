@@ -106,6 +106,7 @@ const emotes = new Map([
   ["mhm", "/emotes/mhm"],
   ["mooah", "/emotes/mooah"],
   ["naaaah", "/emotes/naaaah"],
+  ["negr", "/emotes/negr"],
   ["nerding", "/emotes/nerding"],
   ["neuronactivation", "/emotes/neuronactivation"],
   ["noooo", "/emotes/noooo"],
@@ -366,12 +367,18 @@ const handleServerHistory = async (payload: PayloadTypeParams[PayloadType.SERVER
   }
 };
 
+const escapeRegExp = (string: string): string => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 const formatOutgoingMessage = (message: string): string => {
   emotes.forEach((value, key, map) => {
-    message = message.replaceAll(new RegExp(`\\W?\\b\\s?${key}\\s?\\b\\W?`, "gi"), ` :${key}: `);
+    const escapedKey = escapeRegExp(key);
+    const regex = new RegExp(`(?<!\\S)${escapedKey}(?!\\S)`, "gi");
+    message = message.replaceAll(regex, ` :${key}: `);
   });
   return message.trim();
-}
+};
 
 const handleClientMessage = async (message: string, tempId: string) => {
   let userData = localStorageManager.getMyData();

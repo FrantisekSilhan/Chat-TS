@@ -129,6 +129,7 @@ var emotes = new Map([
     ["mhm", "/emotes/mhm"],
     ["mooah", "/emotes/mooah"],
     ["naaaah", "/emotes/naaaah"],
+    ["negr", "/emotes/negr"],
     ["nerding", "/emotes/nerding"],
     ["neuronactivation", "/emotes/neuronactivation"],
     ["noooo", "/emotes/noooo"],
@@ -384,9 +385,14 @@ var handleServerHistory = function (payload) { return __awaiter(_this, void 0, v
         }
     });
 }); };
+var escapeRegExp = function (string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
 var formatOutgoingMessage = function (message) {
     emotes.forEach(function (value, key, map) {
-        message = message.replaceAll(new RegExp("\\W?\\b\\s?".concat(key, "\\s?\\b\\W?"), "gi"), " :".concat(key, ": "));
+        var escapedKey = escapeRegExp(key);
+        var regex = new RegExp("(?<!\\S)".concat(escapedKey, "(?!\\S)"), "gi");
+        message = message.replaceAll(regex, " :".concat(key, ": "));
     });
     return message.trim();
 };
