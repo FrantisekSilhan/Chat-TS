@@ -480,7 +480,6 @@ const render = (message: string, textElement: HTMLDivElement) => {
     }
     const span = document.createElement("span");
     span.textContent = text;
-    console.log(text);
     textElement.insertAdjacentElement("beforeend", span);
   });
 };

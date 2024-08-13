@@ -497,7 +497,6 @@ var render = function (message, textElement) {
         }
         var span = document.createElement("span");
         span.textContent = text;
-        console.log(text);
         textElement.insertAdjacentElement("beforeend", span);
     });
 };
