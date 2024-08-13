@@ -16,7 +16,6 @@ interface IFormData {
 
 router.post("/", isAuthenticated, async (req, res) => {
   const { login, password }: IFormData = req.body;
-  console.log(req.body);
 
   if (!login || !password) {
     res.status(400).json({ message: "Username And Password Are Required" });
@@ -31,7 +30,6 @@ router.post("/", isAuthenticated, async (req, res) => {
   }
 
   const user = await auth.login(login, password);
-  console.log(user);
 
   if (isIError(user)) {
     await auth.sleepRandomDelay(shared.config.length.delay.failedAuth.min, shared.config.length.delay.failedAuth.max);
