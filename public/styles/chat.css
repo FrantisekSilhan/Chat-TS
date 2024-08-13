@@ -75,11 +75,12 @@
   font-family: "Consolas", "Courier New", Courier, monospace;
 }
 
-.message:nth-child(odd) {
-  background-color: hsl(var(--background-hover));
+.message--spacing {
+  margin-top: .5em;
 }
-.message:nth-child(even) {
-  background-color: hsl(var(--background));
+
+.message--spacing2 + .message {
+  margin-top: .5em;
 }
 
 .chat__input {

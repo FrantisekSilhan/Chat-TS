@@ -336,7 +336,7 @@ var handleServerMessage = function (payload) { return __awaiter(_this, void 0, v
                 return [2 /*return*/];
             case 4:
                 displayname = userData[0], color = userData[1], _ = userData[2];
-                createChatMessage(true, displayname, color, message, timestamp);
+                createChatMessage(true, userId, displayname, color, message, timestamp);
                 return [2 /*return*/];
         }
     });
@@ -373,10 +373,10 @@ var handleServerHistory = function (payload) { return __awaiter(_this, void 0, v
                     var userId = _a[0], message = _a[1], timestamp = _a[2];
                     var userData = userDatas.get(userId) || localStorageManager.getUserData(userId);
                     if (!userData) {
-                        createChatMessage(false, "User ".concat(userId), "gray", message, timestamp);
+                        createChatMessage(false, userId, "User ".concat(userId), "gray", message, timestamp);
                         return;
                     }
-                    createChatMessage(false, userData[0], userData[1], message, timestamp);
+                    createChatMessage(false, userId, userData[0], userData[1], message, timestamp);
                 });
                 window.scrollTo(0, window.scrollY + 1);
                 if (document.querySelectorAll(".message").length <= MAX_HISTORY_MESSAGES) {
@@ -405,7 +405,7 @@ var handleClientMessage = function (message, tempId) { return __awaiter(_this, v
                 userData = localStorageManager.getMyData();
                 displayname = userData[0], color = userData[1], _ = userData[2];
                 formattedMessage = formatOutgoingMessage(message);
-                createChatMessage(true, displayname, color, formattedMessage, "", tempId);
+                createChatMessage(true, "0", displayname, color, formattedMessage, "", tempId);
                 ws.send(JSON.stringify([PayloadType.CLIENT_MESSAGE, formattedMessage, tempId]));
                 _a.label = 1;
             case 1:
@@ -503,7 +503,7 @@ var render = function (message, textElement) {
         textElement.insertAdjacentElement("beforeend", span);
     });
 };
-var createChatMessage = function (isNew, displayname, color, message, timestamp, tempId) {
+var createChatMessage = function (isNew, userId, displayname, color, message, timestamp, tempId) {
     var messageElement = document.createElement("li");
     var displaynameElement = document.createElement("span");
     var timestampElement = document.createElement("span");
@@ -530,6 +530,7 @@ var createChatMessage = function (isNew, displayname, color, message, timestamp,
     messageElement.appendChild(messageSeparator);
     messageElement.appendChild(messageText);
     messageElement.dataset.timestamp = tempId || timestamp;
+    messageElement.dataset.userId = userId;
     var chatElement = document.getElementById("chat");
     var chatWarning = document.getElementById("chat-warning");
     if (!chatElement || !chatWarning) {
@@ -537,9 +538,17 @@ var createChatMessage = function (isNew, displayname, color, message, timestamp,
         return;
     }
     if (isNew) {
+        var lastMessage = chatElement.lastElementChild;
+        if (lastMessage && lastMessage.dataset.userId !== userId) {
+            messageElement.classList.add("message--spacing");
+        }
         chatElement.appendChild(messageElement);
     }
     else {
+        var lastMessage = chatElement.firstElementChild;
+        if (lastMessage && lastMessage.dataset.userId !== userId) {
+            messageElement.classList.add("message--spacing2");
+        }
         chatElement.prepend(messageElement);
     }
     if (!isNew)

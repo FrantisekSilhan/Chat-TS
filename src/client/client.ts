@@ -327,7 +327,7 @@ const handleServerMessage = async (payload: PayloadTypeParams[PayloadType.SERVER
 
   const [displayname, color, _] = userData;
 
-  createChatMessage(true, displayname, color, message, timestamp);
+  createChatMessage(true, userId, displayname, color, message, timestamp);
 };
 
 const handleServerHistory = async (payload: PayloadTypeParams[PayloadType.SERVER_HISTORY]) => {
@@ -355,11 +355,11 @@ const handleServerHistory = async (payload: PayloadTypeParams[PayloadType.SERVER
     let userData = userDatas.get(userId) || localStorageManager.getUserData(userId);
 
     if (!userData) {
-      createChatMessage(false, `User ${userId}`, "gray", message, timestamp);
+      createChatMessage(false, userId, `User ${userId}`, "gray", message, timestamp);
       return;
     }
 
-    createChatMessage(false, userData[0], userData[1], message, timestamp);
+    createChatMessage(false, userId, userData[0], userData[1], message, timestamp);
   });
 
   window.scrollTo(0, window.scrollY + 1);
@@ -388,7 +388,7 @@ const handleClientMessage = async (message: string, tempId: string) => {
 
   const formattedMessage = formatOutgoingMessage(message);
 
-  createChatMessage(true, displayname, color, formattedMessage, "", tempId);
+  createChatMessage(true, "0", displayname, color, formattedMessage, "", tempId);
   ws.send(JSON.stringify([PayloadType.CLIENT_MESSAGE, formattedMessage, tempId]));
 
   try {
@@ -488,7 +488,7 @@ const render = (message: string, textElement: HTMLDivElement) => {
   });
 };
 
-const createChatMessage = (isNew: boolean, displayname: string, color: string, message: string, timestamp: string, tempId?: string) => {
+const createChatMessage = (isNew: boolean, userId: string, displayname: string, color: string, message: string, timestamp: string, tempId?: string) => {
   const messageElement = document.createElement("li");
   const displaynameElement = document.createElement("span");
   const timestampElement = document.createElement("span");
@@ -523,6 +523,7 @@ const createChatMessage = (isNew: boolean, displayname: string, color: string, m
 
 
   messageElement.dataset.timestamp = tempId || timestamp;
+  messageElement.dataset.userId = userId;
 
   const chatElement = document.getElementById("chat");
   const chatWarning = document.getElementById("chat-warning");
@@ -532,8 +533,20 @@ const createChatMessage = (isNew: boolean, displayname: string, color: string, m
   }
 
   if (isNew) {
+    const lastMessage = chatElement.lastElementChild as HTMLElement;
+
+    if (lastMessage && lastMessage.dataset.userId !== userId) {
+      messageElement.classList.add("message--spacing");
+    }
+  
     chatElement.appendChild(messageElement);
   } else {
+    const lastMessage = chatElement.firstElementChild as HTMLElement;
+
+    if (lastMessage && lastMessage.dataset.userId !== userId) {
+      messageElement.classList.add("message--spacing2");
+    }
+
     chatElement.prepend(messageElement);
   }
 
@@ -543,7 +556,7 @@ const createChatMessage = (isNew: boolean, displayname: string, color: string, m
   } else {
     chatWarning.classList.add("visible");
   }
-}
+};
 
 const localStorageManager = {
   setUserData: (payload: PayloadTypeParams[PayloadType.SERVER_USER_DATA]) => {
