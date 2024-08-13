@@ -389,10 +389,10 @@ var escapeRegExp = function (string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 var formatOutgoingMessage = function (message) {
-    emotes.forEach(function (value, key, map) {
+    emotes.forEach(function (_, key, __) {
         var escapedKey = escapeRegExp(key);
         var regex = new RegExp("(?<!\\S)".concat(escapedKey, "(?!\\S)"), "gi");
-        message = message.replaceAll(regex, " :".concat(key, ": "));
+        message = message.replaceAll(regex, ":".concat(key, ":"));
     });
     return message.trim();
 };
@@ -495,7 +495,10 @@ var render = function (message, textElement) {
                 return;
             }
         }
-        textElement.insertAdjacentText("beforeend", text);
+        var span = document.createElement("span");
+        span.textContent = text;
+        console.log(text);
+        textElement.insertAdjacentElement("beforeend", span);
     });
 };
 var createChatMessage = function (isNew, displayname, color, message, timestamp, tempId) {

@@ -372,10 +372,10 @@ const escapeRegExp = (string: string): string => {
 };
 
 const formatOutgoingMessage = (message: string): string => {
-  emotes.forEach((value, key, map) => {
+  emotes.forEach((_, key, __) => {
     const escapedKey = escapeRegExp(key);
     const regex = new RegExp(`(?<!\\S)${escapedKey}(?!\\S)`, "gi");
-    message = message.replaceAll(regex, ` :${key}: `);
+    message = message.replaceAll(regex, `:${key}:`);
   });
   return message.trim();
 };
@@ -478,7 +478,10 @@ const render = (message: string, textElement: HTMLDivElement) => {
         return;
       }
     }
-    textElement.insertAdjacentText("beforeend", text);
+    const span = document.createElement("span");
+    span.textContent = text;
+    console.log(text);
+    textElement.insertAdjacentElement("beforeend", span);
   });
 };
 
