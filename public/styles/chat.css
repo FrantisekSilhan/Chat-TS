@@ -35,6 +35,14 @@
   color: hsl(var(--text-hover));
 }
 
+.message--large {
+  font-size: 2rem;
+}
+
+.message--large .message__emote {
+  vertical-align: sub;
+}
+
 .message__emote img {
   font-style: italic;
   height: 100%;

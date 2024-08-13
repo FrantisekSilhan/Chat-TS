@@ -478,6 +478,9 @@ const render = (message: string, textElement: HTMLDivElement) => {
         return;
       }
     }
+
+    if (text === "") return;
+
     const span = document.createElement("span");
     span.textContent = text;
     textElement.insertAdjacentElement("beforeend", span);
@@ -500,6 +503,10 @@ const createChatMessage = (isNew: boolean, displayname: string, color: string, m
   messageSeparator.textContent = ": ";
 
   render(message, messageText);
+
+  if (messageText.children.length <= 3 && Array.from(messageText.children).every((child) => child.tagName === "PICTURE")) {
+    messageText.classList.add("message--large");
+  }
 
   displaynameElement.style.background = color;
   displaynameElement.style.color = "transparent";

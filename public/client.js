@@ -495,6 +495,8 @@ var render = function (message, textElement) {
                 return;
             }
         }
+        if (text === "")
+            return;
         var span = document.createElement("span");
         span.textContent = text;
         textElement.insertAdjacentElement("beforeend", span);
@@ -513,6 +515,9 @@ var createChatMessage = function (isNew, displayname, color, message, timestamp,
     timestampElement.textContent = tempId ? formatTimestamp(BigInt(Date.now())) : formatTimestamp(timestampToDate(timestamp)[0]);
     messageSeparator.textContent = ": ";
     render(message, messageText);
+    if (messageText.children.length <= 3 && Array.from(messageText.children).every(function (child) { return child.tagName === "PICTURE"; })) {
+        messageText.classList.add("message--large");
+    }
     displaynameElement.style.background = color;
     displaynameElement.style.color = "transparent";
     displaynameElement.style.backgroundClip = "text";
