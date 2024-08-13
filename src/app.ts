@@ -23,6 +23,7 @@ import shared from "./shared";
 import logger from "./utils/logger";
 
 import { sessionMiddleware } from "./middlewares/session.middleware";
+import { isAuthenticatedCSRF } from "./middlewares/api.middleware";
 import { shouldMinify } from "./middlewares/minify.middleware";
 import type { ExecuteResult } from "./utils/database";
 
@@ -47,6 +48,7 @@ declare module "express-session" {
     returnTo: string | undefined;
     error: IError | undefined;
     formData: any | undefined;
+    skipCSRF: boolean | undefined;
   }
 };
 
@@ -80,12 +82,21 @@ app.use(express.json());
 app.use(expressLayouts);
 app.use(cookieParser());
 app.use(sessionMiddleware);
-app.use(csrfProtection);
+app.use(isAuthenticatedCSRF);
+app.use((req, res, next) => {
+  if (req.session.skipCSRF) {
+    next();
+  } else {
+    csrfProtection(req, res, next);
+  }
+});
 app.use((req, res, next) => {
   res.locals.host = req.headers.host;
   res.locals.site = shared.config.site;
   res.locals.siteUrl = shared.config.siteUrl;
-  res.locals.csrfToken = req.csrfToken();
+  if (!req.session.skipCSRF) {
+    res.locals.csrfToken = req.csrfToken();
+  }
   res.locals.renderNavbar = true;
   res.locals.isError = false;
   res.locals.user = req.session.userId;
@@ -104,17 +115,29 @@ app.use(
 );
 
 // routes
-const routeFiles = fs.readdirSync(shared.paths.routes);
+const routeFiles = [
+  fs.readdirSync(shared.paths.routes),
+  fs.readdirSync(shared.paths.api),
+];
 
-for (const file of routeFiles) {
+for (const file of routeFiles[0]) {
   if (file.endsWith(".ts") && file !== "index.ts") {
     const router = await import(path.join(shared.paths.routes, file));
     app.use(router.default.path, router.default.router);
   }
 }
 
+for (const file of routeFiles[1]) {
+  if (file.endsWith(".ts") && file !== "index.ts") {
+    const router = await import(path.join(shared.paths.api, file));
+    app.use(router.default.path, router.default.router);
+  }
+}
+
 const router = await import(path.join(shared.paths.routes, "index"));
+const apiRouter = await import(path.join(shared.paths.api, "index"));
 app.use(router.default.path, router.default.router);
+app.use(apiRouter.default.path, apiRouter.default.router);
 
 // server
 const server = process.env.NODE_ENV === "production" ? (await import("http")).createServer(app) : (await import("https")).createServer({
@@ -133,11 +156,16 @@ app.use((_, __, next) => {
   });
 });
 
-app.use((err: any, _: Request, res: Response, __: NextFunction) => {
+app.use((err: any, req: Request, res: Response, _: NextFunction) => {
   logger.error(err);
 
   const status = (err.status !== undefined && err.status >= 500 && err.status < 600) ? 500 : err.status || 500;
   const message = (status === 500) ? "Internal Server Error" : err.message || "Unknown Error";
+
+  if (req.session.skipCSRF) {
+    res.status(status).json({ message });
+    return;
+  }
 
   res.locals.isError = true;
   res.status(status).render("error", { status, message });

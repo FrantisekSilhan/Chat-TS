@@ -50,6 +50,7 @@ export const paths: { [key: string]: string } = {
   src: path.join(root, "src"),
 
   routes: path.join(root, "src", "routes"),
+  api: path.join(root, "src", "routes", "api"),
   views: path.join(root, "src", "views"),
   layouts: path.join(root, "src", "views", "layouts"),
 
