@@ -168,6 +168,7 @@ var emotes = new Map([
     ["skip", "/emotes/skip"],
     ["slovak", "/emotes/slovak"],
     ["sniffa", "/emotes/sniffa"],
+    ["sob", "/emotes/sob"],
     ["suffering", "/emotes/suffering"],
     ["sus", "/emotes/sus"],
     ["susdog", "/emotes/susdog"],
