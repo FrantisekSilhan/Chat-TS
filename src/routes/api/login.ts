@@ -18,15 +18,15 @@ router.post("/", isAuthenticated, async (req, res) => {
   const { login, password }: IFormData = req.body;
 
   if (!login || !password) {
-    res.status(400).json({ message: "Username And Password Are Required" });
+    return res.status(400).json({ message: "Username And Password Are Required" });
   }
 
   if (login.length > shared.config.length.email.max) {
-    res.status(400).json({ message: `Login Must Be At Most ${shared.config.length.username.max} Characters` });
+    return res.status(400).json({ message: `Login Must Be At Most ${shared.config.length.username.max} Characters` });
   }
 
   if (password.length > shared.config.length.password.max) {
-    res.status(400).json({ message: `Password Must Be At Most ${shared.config.length.password.max} Characters` });
+    return res.status(400).json({ message: `Password Must Be At Most ${shared.config.length.password.max} Characters` });
   }
 
   const user = await auth.login(login, password);
