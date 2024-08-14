@@ -77,7 +77,7 @@ const emotes = new Map([
   ["crunch", "/emotes/crunch"],
   ["doyoufeeltheweightofyoursinsdoesithurtdoesgodsjudgementfillyouwithguilttormenttheyrecomingtheyrecomi", "/emotes/doyoufeeltheweightofyoursinsdoesithurtdoesgodsjudgementfillyouwithguilttormenttheyrecomingtheyrecomi"],
   ["drak", "/emotes/drak"],
-  [":3", "/emotes/dvojtecka3"],
+  ["dvojtecka3", "/emotes/dvojtecka3"],
   ["emo", "/emotes/emo"],
   ["erm", "/emotes/erm"],
   ["flashbacks", "/emotes/flashbacks"],
