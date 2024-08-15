@@ -422,27 +422,20 @@ const handleClientMessage = async (message: string, tempId: string) => {
 
 const formatTimestamp = (timestamp: ExecuteResult) => {
   const date = new Date(Number(timestamp));
-  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 6000));
+  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 1000));
 
   const now = new Date();
-  const localNow = new Date(now.getTime() - (now.getTimezoneOffset() * 6000));
+  const localNow = new Date(now.getTime() - (now.getTimezoneOffset() * 1000));
 
   const isToday = localDate.toDateString() === localNow.toDateString();
   const isYesterday = localDate.toDateString() === new Date(localNow.setDate(localNow.getDate() - 1)).toDateString();
 
-  const hours = localDate.getHours().toString().padStart(2, "0");
-  const minutes = localDate.getMinutes().toString().padStart(2, "0");
-  const formattedTime = `${hours}:${minutes}`;
-
   if (isToday) {
-    return `Today at ${formattedTime}`;
+    return `Today at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   } else if (isYesterday) {
-    return `Yesterday at ${formattedTime}`;
+    return `Yesterday at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   } else {
-    const day = (localDate.getMonth() + 1).toString().padStart(2, "0");
-    const month = localDate.getDate().toString().padStart(2, "0");
-    const year = localDate.getFullYear();
-    return `${day}/${month}/${year} ${formattedTime}`;
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   }
 };
 
@@ -550,7 +543,7 @@ const createChatMessage = (isNew: boolean, userId: string, displayname: string, 
     if (lastMessage && lastMessage.dataset.userId !== userId) {
       messageElement.classList.add("message--spacing");
     }
-  
+
     chatElement.appendChild(messageElement);
   } else {
     const lastMessage = chatElement.firstElementChild as HTMLElement;
