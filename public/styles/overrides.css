@@ -5,3 +5,9 @@
 .hidden {
   display: none;
 }
+
+*:not(.chat__textarea):focus-visible {
+  outline: 2px solid hsl(var(--text));
+  outline-offset: -2px;
+  border-radius: var(--border-radius);
+}

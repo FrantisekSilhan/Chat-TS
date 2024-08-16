@@ -1,0 +1,33 @@
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  max-width: 32em;
+  margin: 0 auto;
+  background-color: hsl(var(--background));
+}
+
+.form__items {
+  display: flex;
+  flex-direction: column;
+  gap: .5em;
+}
+
+.form__input {
+  padding: .5em;
+  border: 2px solid hsl(var(--background-hover));
+  border-radius: var(--border-radius2);
+  background-color: hsl(var(--background-hover));
+  color: hsl(var(--text));
+  font-size: var(--font-m);
+}
+
+.form__input::placeholder {
+  color: hsl(var(--text-hover));
+}
+
+.form--inline {
+  flex-direction: row;
+  gap: .5em;
+}

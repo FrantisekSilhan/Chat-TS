@@ -3,7 +3,7 @@
   --text-hover: 219 28% 88%;
   --text-pending: 0 0% 60%;
   --background: 180 13% 6%;
-  --background-hover: 180 20% 4%;
+  --background-hover: 180 5% 15%;
   --primary: 179 25% 65%;
   --accent: 213 32% 52%;
   --error: 354 42% 56%;
@@ -11,6 +11,7 @@
   --alert: 40 71% 73%;
   --success: 92 28% 65%;
   --info: 311 20% 63%;
+  --fg-btn: 0 0% 100%;
   --shadow: calc(var(--border-radius) * -1) var(--border-radius) var(--border-radius) hsl(0 0% 0% / .25);
 
   --font: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -48,22 +49,18 @@ body {
   --chat-height: min(calc(var(--chat-height-input) + 2em), 8em);
 }
 
-.btn {
-  display: inline-block;
-  padding: .5em 1em;
-  border-radius: var(--border-radius);
-  background-color: hsl(var(--text));
-  color: hsl(var(--background));
-  text-align: center;
-  text-decoration: none;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color .2s;
+a {
+  color: hsl(var(--text));
 }
 
-.btn--disabled {
-  background-color: hsl(var(--background));
-  color: hsl(var(--text));
-  cursor: not-allowed;
+a:hover {
+  color: hsl(var(--text-hover));
+}
+
+.section {
+  margin-top: 1em;
+}
+
+.section--center {
+  margin-inline: auto;
 }
