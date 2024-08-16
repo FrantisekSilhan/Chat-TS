@@ -430,12 +430,14 @@ const formatTimestamp = (timestamp: ExecuteResult) => {
   const isToday = localDate.toDateString() === localNow.toDateString();
   const isYesterday = localDate.toDateString() === new Date(localNow.setDate(localNow.getDate() - 1)).toDateString();
 
+  const options: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", hourCycle: "h23" };
+
   if (isToday) {
-    return `Today at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    return `Today at ${date.toLocaleTimeString([], options)}`;
   } else if (isYesterday) {
-    return `Yesterday at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    return `Yesterday at ${date.toLocaleTimeString([], options)}`;
   } else {
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], options)}`;
   }
 };
 
