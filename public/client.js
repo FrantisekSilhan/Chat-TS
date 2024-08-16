@@ -444,25 +444,20 @@ var handleClientMessage = function (message, tempId) { return __awaiter(_this, v
 }); };
 var formatTimestamp = function (timestamp) {
     var date = new Date(Number(timestamp));
-    var localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 6000));
+    var localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 1000));
     var now = new Date();
-    var localNow = new Date(now.getTime() - (now.getTimezoneOffset() * 6000));
+    var localNow = new Date(now.getTime() - (now.getTimezoneOffset() * 1000));
     var isToday = localDate.toDateString() === localNow.toDateString();
     var isYesterday = localDate.toDateString() === new Date(localNow.setDate(localNow.getDate() - 1)).toDateString();
-    var hours = localDate.getHours().toString().padStart(2, "0");
-    var minutes = localDate.getMinutes().toString().padStart(2, "0");
-    var formattedTime = "".concat(hours, ":").concat(minutes);
+    var options = { hour: "2-digit", minute: "2-digit", hourCycle: "h23" };
     if (isToday) {
-        return "Today at ".concat(formattedTime);
+        return "Today at ".concat(date.toLocaleTimeString([], options));
     }
     else if (isYesterday) {
-        return "Yesterday at ".concat(formattedTime);
+        return "Yesterday at ".concat(date.toLocaleTimeString([], options));
     }
     else {
-        var day = (localDate.getMonth() + 1).toString().padStart(2, "0");
-        var month = localDate.getDate().toString().padStart(2, "0");
-        var year = localDate.getFullYear();
-        return "".concat(day, "/").concat(month, "/").concat(year, " ").concat(formattedTime);
+        return "".concat(date.toLocaleDateString(), " ").concat(date.toLocaleTimeString([], options));
     }
 };
 var splitStringByRegex = function (inputString, regexPattern) {

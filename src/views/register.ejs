@@ -1,6 +1,6 @@
 <% page = "Sign up" %>
 
-<div class="auth">
+<div class="auth section section--center">
   <div class="auth__main">
     <h1 class="text--s2 text--bold">Sign up</h1>
     
@@ -15,7 +15,7 @@
         <input class="form__input" type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm password" minlength="<%= passwordMin %>" maxlength="<%= passwordMax %>" required>
       </div>
 
-      <!--<p>By creating an account, you agree to our <a href="/privacy">Privacy Policy</a>.</p>-->
+      <p>By creating an account, you agree to the practices of our <a href="https://github.com/FrantisekSilhan/Chat-TS">open-source</a> project.</p>
     
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     

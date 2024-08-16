@@ -1,0 +1,74 @@
+.btn {
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: .5em 1em;
+  border-radius: var(--border-radius);
+  font: var(--font);
+  font-weight: bold;
+  display: inline-block;
+  text-decoration: none;
+  color: hsl(var(--background));
+  background-color: hsl(var(--fg-btn));
+  font-size: var(--font-m);
+  box-shadow: var(--shadow);
+}
+
+.btn:hover, .btn:focus-visible {
+  background-color: hsl(var(--text-hover));
+}
+
+.btn--primary {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--background));
+}
+
+.btn--secondary {
+  background-color: hsl(var(--background-hover));
+  color: hsl(var(--text));
+}
+
+.btn--secondary:hover, .btn--secondary:focus-visible {
+  color: hsl(var(--text-hover));
+}
+
+.btn--cta {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--text));
+  font-size: var(--font-s2);
+}
+
+.btn--primary:hover, .btn--primary:focus-visible {
+  color: hsl(var(--background-hover));
+}
+
+.btn-wrapper {
+  display: flex;
+  gap: 1em;
+}
+
+.btn-wrapper--grid {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  gap: 1em;
+}
+
+.btn--danger {
+  background-color: hsl(var(--error));
+  color: hsl(var(--background));
+}
+
+.btn--danger:hover {
+  color: hsl(var(--background-hover));
+}
+
+.btn--disabled {
+  cursor: not-allowed;
+  background-color: hsl(var(--background-hover));
+  color: hsl(var(--text));
+}
+
+.btn--disabled:hover {
+  color: hsl(var(--text));
+}
