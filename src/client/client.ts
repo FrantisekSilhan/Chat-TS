@@ -509,11 +509,13 @@ const render = (message: string, textElement: HTMLDivElement) => {
 
   if (videoLink !== "") {
     const video = document.createElement("video");
+    video.classList.add("message__media");
     video.controls = true;
     video.src = videoLink;
     textElement.insertAdjacentElement("beforeend", video);
   } else if (imageLink !== "") {
     const img = document.createElement("img");
+    img.classList.add("message__media");
     img.src = imageLink;
     textElement.insertAdjacentElement("beforeend", img);
   }

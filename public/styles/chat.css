@@ -83,6 +83,10 @@
   margin-top: .5em;
 }
 
+.message__media {
+  width: min(calc(100% - 2em), 960px);
+}
+
 .chat__input {
   font-size: 1rem;
   position: fixed;

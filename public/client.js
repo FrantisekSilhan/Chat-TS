@@ -470,14 +470,28 @@ var splitStringByRegex = function (inputString, regexPattern) {
         lastIndex = regexPattern.lastIndex;
     }
     result.push(inputString.slice(lastIndex));
-    return result;
+    return result.filter(function (n) { return n !== ""; });
 };
 var render = function (message, textElement) {
     var httpRegex = /https?:\/\/(www\.)?[-a-zA-Z-1-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
     var regex = new RegExp("".concat(httpRegex.source, "|:[a-zA-Z0-9]{1,9}:"), "gi");
     var divided = splitStringByRegex(message, regex);
+    var videoRegex = /\.mp4|\.webm|\.mov$/;
+    var videoLink = "";
+    var imageRegex = /\.png|\.jpg|\.jpeg|\.webp|\.avif|\.gif$/;
+    var imageLink = "";
     divided.forEach(function (text) {
         if (httpRegex.test(text)) {
+            if (videoLink === "" && videoRegex.test(text)) {
+                videoLink = text;
+                if (divided.length === 1)
+                    return;
+            }
+            else if (imageLink === "" && imageRegex.test(text)) {
+                imageLink = text;
+                if (divided.length === 1)
+                    return;
+            }
             var link = document.createElement("a");
             link.href = text;
             link.target = "_blank";
@@ -509,6 +523,19 @@ var render = function (message, textElement) {
         span.textContent = text;
         textElement.insertAdjacentElement("beforeend", span);
     });
+    if (videoLink !== "") {
+        var video = document.createElement("video");
+        video.classList.add("message__media");
+        video.controls = true;
+        video.src = videoLink;
+        textElement.insertAdjacentElement("beforeend", video);
+    }
+    else if (imageLink !== "") {
+        var img = document.createElement("img");
+        img.classList.add("message__media");
+        img.src = imageLink;
+        textElement.insertAdjacentElement("beforeend", img);
+    }
 };
 var createChatMessage = function (isNew, userId, displayname, color, message, timestamp, tempId) {
     var messageElement = document.createElement("li");
