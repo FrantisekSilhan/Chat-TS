@@ -109,6 +109,8 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         scriptSrc: ["'self'", (_, res) => `'nonce-${(res as Response).locals.cspNonce}'`],
+        mediaSrc: ["self", "https:"],
+        imgSrc: ["self", "data:", "https:"]
       },
     },
   }),

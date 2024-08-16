@@ -453,15 +453,28 @@ const splitStringByRegex = (inputString: string, regexPattern: RegExp): string[]
   }
 
   result.push(inputString.slice(lastIndex));
-  return result;
+  return result.filter(n => n !== "");
 };
 
 const render = (message: string, textElement: HTMLDivElement) => {
   const httpRegex = /https?:\/\/(www\.)?[-a-zA-Z-1-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(:\d{1,5})?([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
   const regex = new RegExp(`${httpRegex.source}|:[a-zA-Z0-9]{1,9}:`, "gi")
   const divided = splitStringByRegex(message, regex);
+
+  const videoRegex = /\.mp4|\.webm|\.mov$/;
+  let videoLink = "";
+  const imageRegex = /\.png|\.jpg|\.jpeg|\.webp|\.avif|\.gif$/;
+  let imageLink = "";
+
   divided.forEach((text) => {
     if (httpRegex.test(text)) {
+      if (videoLink === "" && videoRegex.test(text)) {
+        videoLink = text;
+        if (divided.length === 1) return;
+      } else if (imageLink === "" && imageRegex.test(text)) {
+        imageLink = text;
+        if (divided.length === 1) return;
+      }
       const link = document.createElement("a");
       link.href = text;
       link.target = "_blank";
@@ -493,6 +506,19 @@ const render = (message: string, textElement: HTMLDivElement) => {
     span.textContent = text;
     textElement.insertAdjacentElement("beforeend", span);
   });
+
+  if (videoLink !== "") {
+    const video = document.createElement("video");
+    video.classList.add("message__media");
+    video.controls = true;
+    video.src = videoLink;
+    textElement.insertAdjacentElement("beforeend", video);
+  } else if (imageLink !== "") {
+    const img = document.createElement("img");
+    img.classList.add("message__media");
+    img.src = imageLink;
+    textElement.insertAdjacentElement("beforeend", img);
+  }
 };
 
 const createChatMessage = (isNew: boolean, userId: string, displayname: string, color: string, message: string, timestamp: string, tempId?: string) => {
