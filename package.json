@@ -6,7 +6,7 @@
   "scripts": {
     "start": "bun run src/app.ts",
     "dev": "bun run --watch src/app.ts",
-    "client": "tsc ./src/client/client.ts --outDir public/"
+    "client": "tsc -w ./src/client/client.ts --outDir public/"
   },
   "devDependencies": {
     "@types/bun": "latest",

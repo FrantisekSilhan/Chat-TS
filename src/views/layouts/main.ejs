@@ -28,7 +28,7 @@
   <meta name="language" content="en">
   <meta name="rating" content="general">
   <meta name="theme-color" content="#aaa3c2">
-  
+
   <!-- Open Graph -->
   <meta property="og:url" content="<%= siteUrl %>">
   <meta property="og:type" content="website">
@@ -71,6 +71,7 @@
   </div>-->
   <% if (user) { %>
     <script nonce="<%= cspNonce %>" src="/client.js"></script>
+    <script nonce="<%= cspNonce %>" src="/embed.js"></script>
   <% } %>
 </body>
 </html>
